@@ -61,8 +61,8 @@ mount ${LOOP_DEVICE}p1 "${workdir}/root/boot"
 # Download and extract root filesystem
 if [ ! -f "$workdir/ArchLinuxARM-rpi-${arm_version}-latest.tar.gz" ] || [ ! -f "$workdir/ArchLinuxARM-rpi-${arm_version}-latest.tar.gz.md5" ]; then
   # Download the image and the MD5 checksum file
-  wget "${archlinuxarm}" -O "$workdir/ArchLinuxARM-rpi-${arm_version}-latest.tar.gz"
-  wget "${archlinuxarm_md5}" -O "$workdir/ArchLinuxARM-rpi-${arm_version}-latest.tar.gz.md5"
+  wget --quiet "${archlinuxarm}" -O "$workdir/ArchLinuxARM-rpi-${arm_version}-latest.tar.gz"
+  wget --quiet "${archlinuxarm_md5}" -O "$workdir/ArchLinuxARM-rpi-${arm_version}-latest.tar.gz.md5"
 fi
 
 # Verify MD5 checksum
