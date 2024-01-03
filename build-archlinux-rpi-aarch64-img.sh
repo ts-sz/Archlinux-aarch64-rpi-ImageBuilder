@@ -41,17 +41,8 @@ arm_version="aarch64"
 archlinuxarm="http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${arm_version}-latest.tar.gz"
 archlinuxarm_md5="http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${arm_version}-latest.tar.gz.md5"
 
-# # Prompt the user to specify the disk
-# read -p "Please specify the disk to use (e.g., /dev/sdX): " SDCARD
-
-# # Warning to the user
-# read -p "WARNING: You are about to format the disk $SDCARD, and all data on it will be lost. Type YES to continue: " response
-
-# if [[ "$response" != "YES" ]]; then
-#   echo "Operation cancelled."
-#   exit 1
-# fi
 LOOP_DEVICE="${1}"
+
 # Check if the disk exists
 if [ ! -b "$LOOP_DEVICE" ]; then
   echo "The disk $LOOP_DEVICE does not exist. Exiting."
@@ -144,20 +135,6 @@ echo "Setup hostname..."
 # Set the hostname
 echo "$rpi_hostname" > $workdir/root/etc/hostname
 arch-chroot $workdir/root hostnamectl set-hostname "$rpi_hostname"
-
-echo "Setup mkinicpio..."
-arch-chroot $workdir/root mkdir -p /etc/mkinitcpio.conf.d
-
-# Add to MODULES list in mkinitcpio.conf pcie_brcmstb
-arch-chroot $workdir/root /bin/bash -c 'echo "MODULES=(pcie_brcmstb)" | tee /etc/mkinitcpio.conf.d/modules.conf'
-
-# add COMPRESSION=zstd in mkinitcpio.conf
-arch-chroot $workdir/root /bin/bash -c 'echo "COMPRESSION=zstd" | tee /etc/mkinitcpio.conf.d/compression.conf'
-arch-chroot $workdir/root /bin/bash -c 'echo "COMPRESSION_OPTIONS=(-15)" | tee /etc/mkinitcpio.conf.d/compression_options.conf'
-
-echo "Regenerate initramfs..."
-# Regenerate initramfs
-arch-chroot $workdir/root mkinitcpio -P
 
 echo "Setup network..."
 # delete all network files in /etc/systemd/network

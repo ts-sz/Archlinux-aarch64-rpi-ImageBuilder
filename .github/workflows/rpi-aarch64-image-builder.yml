@@ -12,15 +12,20 @@ jobs:
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
     runs-on: ubuntu-latest
     environment: main
-    container: archlinux:latest
+    # container: archlinux:latest
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
 
+    # - name: Update system and install dependencies
+    #   run: |
+    #     pacman -Syu --noconfirm
+    #     pacman -S --noconfirm qemu-user-static-binfmt qemu-user-static dosfstools wget libarchive sudo
+
     - name: Update system and install dependencies
       run: |
-        pacman -Syu --noconfirm
-        pacman -S --noconfirm qemu-user-static-binfmt qemu-user-static dosfstools wget libarchive sudo
+        sudo apt update
+        sudo apt install -y qemu-user-static-binfmt qemu-user-static dosfstools wget bsdtar sudo
 
     - name: Create Image File
       run: |
