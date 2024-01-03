@@ -20,6 +20,7 @@ IF9fX3wgXF9fXy8gIF98ICBffCBcX19ffCAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
 ICAgIHxfX18vICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAK" | base64 -d
 
 # Restart teh service systemd-binfmt.service
+echo "Restarting systemd-binfmt.service..."
 systemctl restart systemd-binfmt.service
 
 rpi_hostname="sz-rpi-aarch64-99"
