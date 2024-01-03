@@ -37,7 +37,7 @@ jobs:
         LOOP_DEVICE=$(sudo losetup -j $LOOP_IMAGE_PATH | cut -d: -f1)
         echo "Loop device is $LOOP_DEVICE"
 
-    - name: Run Modified Setup Script
+    - name: Run Build Script
       run: |
         chmod +x ./build-archlinux-rpi-aarch64-img.sh
         ./build-archlinux-rpi-aarch64-img.sh $LOOP_DEVICE

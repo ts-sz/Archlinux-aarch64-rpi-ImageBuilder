@@ -19,18 +19,6 @@ IF9fLyAKX19fXy8gXF9ffCBffCAgIFxfXyxffCBcX198IFxfX198IFxfXywgfCBffCBcX19ffCAg
 IF9fX3wgXF9fXy8gIF98ICBffCBcX19ffCAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
 ICAgIHxfX18vICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAK" | base64 -d
 
-# Check if the user is root
-if [[ $EUID -ne 0 ]]; then
-  echo "This script must be run as root"
-  exit 1
-fi
-
-# Continue if theses two packages are installed  qemu-user-static-binfmt qemu-user-static 
-if ! pacman -Qi qemu-user-static-binfmt qemu-user-static &> /dev/null; then
-  echo "Please install qemu-user-static-binfmt qemu-user-static packages"
-  exit 1
-fi
-
 # Restart teh service systemd-binfmt.service
 systemctl restart systemd-binfmt.service
 
