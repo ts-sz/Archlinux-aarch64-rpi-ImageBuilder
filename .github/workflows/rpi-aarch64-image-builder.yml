@@ -1,0 +1,54 @@
+name: Archlinux aarch64 Raspberry Pi Image Builder
+
+on: [push]
+
+jobs:
+  build-image:
+    name: Build Archlinux aarch64 Raspberry Pi Image
+    env:
+      LOOP_IMAGE: archlinux-aarch64-rpi.img
+      LOOP_IMAGE_SIZE: 4G
+      LOOP_IMAGE_PATH: /tmp/$LOOP_IMAGE
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Update system and install dependencies
+      run: |
+        sudo pacman -Syu --noconfirm
+        sudo pacman -S --noconfirm qemu-user-static-binfmt qemu-user-static dosfstools wget bsdtar
+
+    - name: Create Image File
+      run: |
+        fallocate -l $LOOP_IMAGE_SIZE $LOOP_IMAGE_PATH
+
+    - name: Setup Loop Device
+      run: |
+        sudo losetup -fP $LOOP_IMAGE_PATH
+        LOOP_DEVICE=$(sudo losetup -j $LOOP_IMAGE_PATH | cut -d: -f1)
+        echo "Loop device is $LOOP_DEVICE"
+
+    - name: Run Modified Setup Script
+      run: |
+        chmod +x ./build-archlinux-rpi-aarch64-img.sh
+        ./build-archlinux-rpi-aarch64-img.sh $LOOP_DEVICE
+
+    - name: Upload Image and Get URL
+      run: |
+        ISO_URL=$(curl --upload-file out/archlinux-*.iso https://pub.strat.zone/)
+        echo "ISO_URL=$ISO_URL" >> $GITHUB_ENV
+
+    - name: Notify Success
+      if: success()
+      run: |
+        SUCCESS_MESSAGE="🎉 Awesome! Deployment Succeeded 🚀\nAuthor: ${{ github.actor }}\nBranch: ${{ github.ref }}\nMessage: ${{ github.event.head_commit.message }}\n[Last Commit Diff:](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) 📜\nA new ISO is available for download:\n[Download ISO]($ISO_URL) 📦\nHostname: [hostname placeholder]"
+        curl -X POST -H "Content-Type: application/json" -d "{\"content\": \"$SUCCESS_MESSAGE\"}" $DISCORD_WEBHOOK_URL
+
+    - name: Notify Failure
+      if: failure()
+      run: |
+        FAILURE_MESSAGE="😞 Oops! The pipeline for **${{ github.repository }}** has failed.\n[Check the logs and troubleshoot here.](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) 🛠️"
+        curl -X POST -H "Content-Type: application/json" -d "{\"content\": \"$FAILURE_MESSAGE\"}" $DISCORD_WEBHOOK_URL
