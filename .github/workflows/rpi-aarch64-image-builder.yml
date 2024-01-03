@@ -18,8 +18,8 @@ jobs:
 
     - name: Update system and install dependencies
       run: |
-        sudo pacman -Syu --noconfirm
-        sudo pacman -S --noconfirm qemu-user-static-binfmt qemu-user-static dosfstools wget bsdtar
+        pacman -Syu --noconfirm
+        pacman -S --noconfirm qemu-user-static-binfmt qemu-user-static dosfstools wget bsdtar sudo
 
     - name: Create Image File
       run: |
