@@ -36,6 +36,7 @@ jobs:
         sudo losetup -fP $LOOP_IMAGE_PATH
         LOOP_DEVICE=$(sudo losetup -j $LOOP_IMAGE_PATH | cut -d: -f1)
         echo "Loop device is $LOOP_DEVICE"
+        echo "LOOP_DEVICE=$LOOP_DEVICE" >> $GITHUB_ENV
 
     - name: Run Build Script
       run: |
