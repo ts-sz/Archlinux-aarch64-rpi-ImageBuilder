@@ -11,6 +11,7 @@ jobs:
       LOOP_IMAGE_PATH: /tmp/$LOOP_IMAGE
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
     runs-on: ubuntu-latest
+    environment: main
     container: archlinux:latest
     steps:
     - name: Checkout repository
