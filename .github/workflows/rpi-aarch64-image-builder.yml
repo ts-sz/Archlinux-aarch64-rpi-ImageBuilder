@@ -17,18 +17,19 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
-    - name: Check OS
+    - name: Detect Linux Distribution
+      id: detect-distro
       run: |
-        echo "OS_TYPE=$(uname -s)" >> $GITHUB_ENV
+        echo "DISTRO=$(cat /etc/*-release | grep ^ID= | cut -d'=' -f2)" >> $GITHUB_ENV    
 
     - name: Update system and install dependencies for Arch Linux
-      if: env.OS_TYPE == 'Linux' && contains(runner.os, 'Arch')
+      if: env.DISTRO == 'arch'
       run: |
         sudo pacman -Syu --noconfirm
         sudo pacman -S --noconfirm qemu-user-static-binfmt qemu-user-static dosfstools wget libarchive sudo  arch-install-scripts
     
     - name: Update system and install dependencies for Ubuntu
-      if: env.OS_TYPE == 'Linux' && contains(runner.os, 'Ubuntu')
+      if: env.DISTRO == 'ubuntu'
       run: |
         sudo apt update
         sudo apt-get install -y arch-install-scripts qemu-user-static binfmt-support dosfstools wget libarchive-tools sudo
