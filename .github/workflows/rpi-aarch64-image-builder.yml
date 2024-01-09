@@ -10,6 +10,7 @@ jobs:
       LOOP_IMAGE_SIZE: 4G
       LOOP_IMAGE_PATH: /mnt/github-actions/archlinux-aarch64-rpi.img
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+      RPI_MODEL: 5
     runs-on: self-hosted
     environment: main
     # container: archlinux:latest
@@ -53,7 +54,7 @@ jobs:
     - name: Upload Image and Get URL
       if: success()
       run: |
-        ISO_URL=$(curl --upload-file out/archlinux-*.iso https://pub.strat.zone/)
+        ISO_URL=$(curl --upload-file $LOOP_IMAGE_PATH https://pub.strat.zone/)
         echo "ISO_URL=$ISO_URL" >> $GITHUB_ENV
 
     - name: Notify Success
