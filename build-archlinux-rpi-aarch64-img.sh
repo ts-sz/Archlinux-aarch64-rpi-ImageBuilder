@@ -130,12 +130,12 @@ echo "Installing packages..."
 arch-chroot $workdir/root pacman -S --noconfirm base-devel dosfstools git mkinitcpio-utils neovim nftables openssh python qrencode rsync sudo tailscale uboot-tools unzip zerotier-one zsh
 
 echo "Installing linux-${$RPI_MODEL} kernel and eeprom..."
-model=$(tr -d '\0' < /sys/firmware/devicetree/base/model)
 echo "Model: $model"
 if [[ $RPI_MODEL == 4 ]]
 then
   arch-chroot $workdir/root pacman -S --noconfirm rpi4-eeprom
 elif [[ $RPI_MODEL == 5 ]]
+then
   arch-chroot $workdir/root pacman -S --noconfirm rpi5-eeprom
 fi
 
