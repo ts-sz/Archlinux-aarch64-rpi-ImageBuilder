@@ -8,7 +8,7 @@ jobs:
     env:
       LOOP_IMAGE: archlinux-aarch64-rpi.img
       LOOP_IMAGE_SIZE: 4G
-      LOOP_IMAGE_PATH: /mnt/archlinux-aarch64-rpi.img
+      LOOP_IMAGE_PATH: $HOME/archlinux-aarch64-rpi.img
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
     runs-on: self-hosted
     environment: main
