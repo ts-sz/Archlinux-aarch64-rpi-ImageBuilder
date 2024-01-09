@@ -25,7 +25,7 @@ jobs:
       if: env.OS_TYPE == 'Linux' && contains(runner.os, 'Arch')
       run: |
         sudo pacman -Syu --noconfirm
-        sudo pacman -S --noconfirm qemu-user-static-binfmt qemu-user-static dosfstools wget libarchive sudo
+        sudo pacman -S --noconfirm qemu-user-static-binfmt qemu-user-static dosfstools wget libarchive sudo  arch-install-scripts
     
     - name: Update system and install dependencies for Ubuntu
       if: env.OS_TYPE == 'Linux' && contains(runner.os, 'Ubuntu')
@@ -50,6 +50,7 @@ jobs:
         sudo ./build-archlinux-rpi-aarch64-img.sh $LOOP_DEVICE
 
     - name: Upload Image and Get URL
+      if: success()
       run: |
         ISO_URL=$(curl --upload-file out/archlinux-*.iso https://pub.strat.zone/)
         echo "ISO_URL=$ISO_URL" >> $GITHUB_ENV
