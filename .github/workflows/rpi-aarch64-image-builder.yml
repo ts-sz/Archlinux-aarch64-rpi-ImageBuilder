@@ -11,6 +11,8 @@ jobs:
       LOOP_IMAGE_PATH: /mnt/github-actions/archlinux-aarch64-rpi.img
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
       RPI_MODEL: 5
+      ARM_VERSION: aarch64
+      WORKDIR_BASE: /mnt/github-actions/${{ github.repository }}/branches/${{ github.ref_name }}/${{ github.run_id }}/$ARM_VERSION/$RPI_MODEL
     runs-on: self-hosted
     environment: main
     # container: archlinux:latest
@@ -49,7 +51,7 @@ jobs:
     - name: Run Build Script
       run: |
         sudo chmod +x ./build-archlinux-rpi-aarch64-img.sh
-        sudo ./build-archlinux-rpi-aarch64-img.sh $LOOP_DEVICE $RPI_MODEL
+        sudo ./build-archlinux-rpi-aarch64-img.sh $LOOP_DEVICE $RPI_MODEL $ARM_VERSION $WORKDIR_BASE
 
     - name: Upload Image and Get URL
       if: success()
@@ -74,4 +76,17 @@ jobs:
       run: |
         sudo rm -f $LOOP_IMAGE_PATH
         echo "Cleaned up image file at $LOOP_IMAGE_PATH"
-  
+
+    - name: Delete Work Folder
+      if: always()
+      run: |
+        sudo rm -rf [chemin du dossier de travail]
+        echo "Work folder deleted"
+
+    - name: Unmount and Release Loop Device
+      if: always()
+      run: |
+        if [ -n "$LOOP_DEVICE" ]; then
+          sudo losetup -d $LOOP_DEVICE
+          echo "Loop device $LOOP_DEVICE released"
+        fi
