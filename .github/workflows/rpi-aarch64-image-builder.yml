@@ -53,6 +53,12 @@ jobs:
     - name: Create Image File
       run: |
         fallocate -l $LOOP_IMAGE_SIZE $LOOP_IMAGE_PATH
+    
+    - name: Download Archlinux aarch64 Image
+      run: |
+        wget $ARCH_AARCH64_IMG_URL -O $WORKDIR_BASE/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz
+        wget $ARCH_AARCH64_IMG_URL_MD5 -O $WORKDIR_BASE/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz.md5
+        md5sum -c $WORKDIR_BASE/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz.md5
 
     - name: Setup Loop Device
       run: |
@@ -60,6 +66,8 @@ jobs:
         LOOP_DEVICE=$(sudo losetup -j $LOOP_IMAGE_PATH | cut -d: -f1)
         echo "Loop device is $LOOP_DEVICE"
         echo "LOOP_DEVICE=$LOOP_DEVICE" >> $GITHUB_ENV
+
+
 
     # - name: Run Build Script
     #   run: |
