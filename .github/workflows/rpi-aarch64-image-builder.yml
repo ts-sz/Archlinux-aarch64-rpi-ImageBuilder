@@ -22,7 +22,7 @@ jobs:
 
     - name: Set up WORKDIR_BASE
       run: |
-        echo "WORKDIR_BASE=/mnt/github-actions/${{ github.repository }}/branches/${{ github.ref_name }}/${{ github.run_id }}/${ARM_VERSION}/${RPI_MODEL}" >> $GITHUB_ENV
+        echo "WORKDIR_BASE=/mnt/github-actions/${{ github.repository }}/branches/${{ github.ref_name }}/${{ github.run_id }}/${ARM_VERSION}/rpi${RPI_MODEL}" >> $GITHUB_ENV
 
     - name: Set up LOOP_IMAGE_PATH
       run: |
@@ -48,7 +48,12 @@ jobs:
       run: |
         sudo apt update
         sudo apt-get install -y arch-install-scripts qemu-user-static binfmt-support dosfstools wget libarchive-tools sudo
-      
+
+    - name: Create Work Folder
+      run: |
+        sudo mkdir -p $WORKDIR_BASE
+        echo "Created $WORKDIR_BASE"
+
     - name: Create Image File
       run: |
         fallocate -l $LOOP_IMAGE_SIZE $LOOP_IMAGE_PATH

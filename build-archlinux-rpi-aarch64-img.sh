@@ -32,10 +32,8 @@ systemctl restart systemd-binfmt.service
 echo "Setting variables..."
 rpi_hostname="sz-rpi-aarch64-99"
 
-arm_version="aarch64"
-# arm_version="armv7"
-archlinuxarm="http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${arm_version}-latest.tar.gz"
-archlinuxarm_md5="http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${arm_version}-latest.tar.gz.md5"
+archlinuxarm="http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz"
+archlinuxarm_md5="http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz.md5"
 
 LOOP_DEVICE="${1}"
 RPI_MODEL=$2
@@ -47,8 +45,12 @@ if [ ! -b "$LOOP_DEVICE" ]; then
   echo "The disk $LOOP_DEVICE does not exist. Exiting."
   exit 1
 fi
+
 echo "Working directory: $WORKDIR_BASE"
-mkdir -p $WORKDIR_BASE
+# Create the working directory if not exists
+if [ ! -d "$WORKDIR_BASE" ]; then
+  mkdir -p $WORKDIR_BASE
+fi
 
 # Define default locale and keymap settings
 default_locale="en_US.UTF-8"
@@ -70,22 +72,22 @@ mkdir -p "${WORKDIR_BASE}/root/boot"
 mount ${LOOP_DEVICE}p1 "${WORKDIR_BASE}/root/boot"
 
 # Download and extract root filesystem
-if [ ! -f "$WORKDIR_BASE/ArchLinuxARM-rpi-${arm_version}-latest.tar.gz" ] || [ ! -f "$WORKDIR_BASE/ArchLinuxARM-rpi-${arm_version}-latest.tar.gz.md5" ]; then
+if [ ! -f "$WORKDIR_BASE/ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz" ] || [ ! -f "$WORKDIR_BASE/ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz.md5" ]; then
   # Download the image and the MD5 checksum file
-  wget --quiet "${archlinuxarm}" -O "$WORKDIR_BASE/ArchLinuxARM-rpi-${arm_version}-latest.tar.gz"
-  wget --quiet "${archlinuxarm_md5}" -O "$WORKDIR_BASE/ArchLinuxARM-rpi-${arm_version}-latest.tar.gz.md5"
+  wget --quiet "${archlinuxarm}" -O "$WORKDIR_BASE/ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz"
+  wget --quiet "${archlinuxarm_md5}" -O "$WORKDIR_BASE/ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz.md5"
 fi
 
 # Verify MD5 checksum
 cd $WORKDIR_BASE
-md5sum --check "ArchLinuxARM-rpi-${arm_version}-latest.tar.gz.md5"
+md5sum --check "ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz.md5"
 if [ $? -ne 0 ]; then
   echo "MD5 checksum does not match. Exiting."
   exit 1
 fi
 
 # If the checksum is correct, proceed with extraction
-bsdtar -xpf "$WORKDIR_BASE/ArchLinuxARM-rpi-${arm_version}-latest.tar.gz" -C $WORKDIR_BASE/root
+bsdtar -xpf "$WORKDIR_BASE/ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz" -C $WORKDIR_BASE/root
 sync
 
 # Make the new root folder a mount point
