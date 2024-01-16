@@ -30,6 +30,11 @@ jobs:
       run: |
         echo "DISTRO=$(cat /etc/*-release | grep ^ID= | cut -d'=' -f2)" >> $GITHUB_ENV    
 
+    - name: Set up WORKDIR_BASE and LOOP_IMAGE_PATH
+      run: |
+        echo "WORKDIR_BASE=/mnt/github-actions/${{ github.repository }}/branches/${{ github.ref_name }}/${{ github.run_id }}/${ARM_VERSION}/${RPI_MODEL}" >> $GITHUB_ENV
+        echo "LOOP_IMAGE_PATH=${WORKDIR_BASE}/archlinux-${ARM_VERSION}-rpi-${RPI_MODEL}.img" >> $GITHUB_ENV
+
     - name: Update system and install dependencies for Arch Linux
       if: env.DISTRO == 'arch'
       run: |
