@@ -41,20 +41,24 @@ ARM_VERSION="${3}"
 WORKDIR_BASE="${4}"
 
 # Check if the disk exists
+echo "Checking if the disk $LOOP_DEVICE exists..."
 if [ ! -b "$LOOP_DEVICE" ]; then
   echo "The disk $LOOP_DEVICE does not exist. Exiting."
   exit 1
 fi
 
-echo "Working directory: $WORKDIR_BASE"
+echo "Create $WORKDIR_BASE if not exists..."
 # Create the working directory if not exists
 if [ ! -d "$WORKDIR_BASE" ]; then
   mkdir -p $WORKDIR_BASE
 fi
 
+echo "setup locales and keymap..."
 # Define default locale and keymap settings
 default_locale="en_US.UTF-8"
 timezone="Europe/Paris"
+
+echo "Setting up the disk..."
 # Partition the disk using parted
 parted --script ${LOOP_DEVICE} mklabel msdos
 parted --script ${LOOP_DEVICE} mkpart primary fat32 1MiB 257MiB
@@ -62,16 +66,19 @@ parted --script ${LOOP_DEVICE} set 1 lba on
 parted --script ${LOOP_DEVICE} mkpart primary 257MiB 100%
 
 # Create file systems
+echo "Creating file systems..."
 mkfs.vfat ${LOOP_DEVICE}p1 -F 32 -n PI-BOOT
 mkfs.ext4 -q -E lazy_itable_init=0,lazy_journal_init=0 -F ${LOOP_DEVICE}p2 -L PI-ROOT
 
 # Mount partitions
+echo "Mounting partitions..."
 mkdir -p "${WORKDIR_BASE}/root"
 mount ${LOOP_DEVICE}p2 "${WORKDIR_BASE}/root"
 mkdir -p "${WORKDIR_BASE}/root/boot"
 mount ${LOOP_DEVICE}p1 "${WORKDIR_BASE}/root/boot"
 
 # Download and extract root filesystem
+echo "Downloading images..."
 if [ ! -f "$WORKDIR_BASE/ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz" ] || [ ! -f "$WORKDIR_BASE/ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz.md5" ]; then
   # Download the image and the MD5 checksum file
   wget --quiet "${archlinuxarm}" -O "$WORKDIR_BASE/ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz"
@@ -79,6 +86,7 @@ if [ ! -f "$WORKDIR_BASE/ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz" ] || [ !
 fi
 
 # Verify MD5 checksum
+echo "Verifying MD5 checksum..."
 cd $WORKDIR_BASE
 md5sum --check "ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz.md5"
 if [ $? -ne 0 ]; then
@@ -87,10 +95,12 @@ if [ $? -ne 0 ]; then
 fi
 
 # If the checksum is correct, proceed with extraction
+echo "Extracting root filesystem..."
 bsdtar -xpf "$WORKDIR_BASE/ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz" -C $WORKDIR_BASE/root
 sync
 
 # Make the new root folder a mount point
+echo "Making the new root folder a mount point..."
 mount --bind $WORKDIR_BASE/root $WORKDIR_BASE/root
 
 echo "Setting locale and keymap..."

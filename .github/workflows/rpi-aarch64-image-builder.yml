@@ -101,7 +101,7 @@ jobs:
         sudo rm -rf $WORKDIR_BASE
         echo "Work folder deleted"
 
-    - name: Unmount and Release Loop Device
+    - name: Release Loop Device
       if: always()
       run: |
         if [ -n "$LOOP_DEVICE" ]; then
