@@ -12,6 +12,11 @@ jobs:
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
       RPI_MODEL: 5
       ARM_VERSION: aarch64
+      DEFAULT_LOCALE: en_US.UTF-8
+      TIMEZONE: Europe/Paris
+      KEYMAP: us-acentos
+      SSH_PUB_KEY: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKMidTQ6KGfZtonNKd1HtNPPDiPtzEmlg5yOduvmZzTA valerius laptop
+      PACKAGES: base-devel dosfstools git mkinitcpio-utils neovim nftables openssh python qrencode rsync sudo tailscale uboot-tools unzip zerotier-one zsh
 
     runs-on: self-hosted
     environment: main

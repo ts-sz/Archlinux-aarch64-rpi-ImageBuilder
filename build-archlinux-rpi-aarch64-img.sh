@@ -20,7 +20,7 @@ IF9fX3wgXF9fXy8gIF98ICBffCBcX19ffCAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
 ICAgIHxfX18vICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAK" | base64 -d
 
 
-echo $WORKDIR_BASE
+echo "hello - $WORKDIR_BASE!!"
 exit 0
 echo "Setting locale and keymap..."
 # Add locales to /etc/locale.gen within the chroot environment
@@ -32,20 +32,17 @@ arch-chroot $WORKDIR_BASE/root sed -i -e '/^#en_US.UTF-8 UTF-8/s/^#//' \
 
 # Generate and set the default locale within the chroot environment
 arch-chroot $WORKDIR_BASE/root locale-gen
-arch-chroot $WORKDIR_BASE/root /bin/bash -c 'echo "LANG=en_US.UTF-8" | tee /etc/locale.conf'
+arch-chroot $WORKDIR_BASE/root /bin/bash -c 'echo "LANG=$DEFAULT_LOCALE" | tee /etc/locale.conf'
 
 # Set the system locale within the chroot environment
-arch-chroot $WORKDIR_BASE/root /bin/bash -c "localectl set-locale LANG=$default_locale"
-
-# Modify keymap in vconsole within the chroot environment
-arch-chroot $WORKDIR_BASE/root /bin/bash -c "echo -e "KEYMAP=us-acentos\nFONT=eurlatgr"| tee /etc/vconsole.conf"
+arch-chroot $WORKDIR_BASE/root /bin/bash -c "localectl set-locale LANG=$DEFAULT_LOCALE"
 
 # Add keymap to vconsole.conf within the chroot environment
-arch-chroot $WORKDIR_BASE/root /bin/bash -c 'echo -e "KEYMAP=us-acentos\nFONT=eurlatgr"| tee /etc/vconsole.conf'
+arch-chroot $WORKDIR_BASE/root /bin/bash -c 'echo -e "KEYMAP=$KEYMAP\nFONT=eurlatgr"| tee /etc/vconsole.conf'
 
 echo "Setting timezone..."
 # Set the timezone within the chroot environment
-arch-chroot $WORKDIR_BASE/root /bin/bash -c "ln -sf /usr/share/zoneinfo/${timezone} /etc/localtime"
+arch-chroot $WORKDIR_BASE/root /bin/bash -c "ln -sf /usr/share/zoneinfo/${TIMEZONE} /etc/localtime"
 
 echo "Initializing pacman keyring..."
 # Initialize pacman keyring
@@ -59,17 +56,10 @@ arch-chroot $WORKDIR_BASE/root pacman -Syu --noconfirm archlinux-keyring
 
 echo "Installing packages..."
 # Install packages
-arch-chroot $WORKDIR_BASE/root pacman -S --noconfirm base-devel dosfstools git mkinitcpio-utils neovim nftables openssh python qrencode rsync sudo tailscale uboot-tools unzip zerotier-one zsh
+arch-chroot $WORKDIR_BASE/root pacman -S --noconfirm $PACKAGES
 
 echo "Installing linux-${$RPI_MODEL} kernel and eeprom..."
-echo "Model: $model"
-if [[ $RPI_MODEL == 4 ]]
-then
-  arch-chroot $WORKDIR_BASE/root pacman -S --noconfirm rpi4-eeprom
-elif [[ $RPI_MODEL == 5 ]]
-then
-  arch-chroot $WORKDIR_BASE/root pacman -S --noconfirm rpi5-eeprom
-fi
+arch-chroot $WORKDIR_BASE/root pacman -S --noconfirm rpi$RPI_MODEL-eeprom
 
 echo "Setup hostname..."
 # Set the hostname
