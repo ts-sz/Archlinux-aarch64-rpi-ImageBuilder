@@ -30,9 +30,6 @@ echo "Restarting systemd-binfmt.service..."
 systemctl restart systemd-binfmt.service
 
 echo "Setting variables..."
-archlinuxarm="http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz"
-archlinuxarm_md5="http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz.md5"
-user_agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
 LOOP_DEVICE="${1}"
 RPI_MODEL="$2"
@@ -53,13 +50,8 @@ if [ ! -d "$WORKDIR_BASE" ]; then
   mkdir -p $WORKDIR_BASE
 fi
 
-echo "setup locales and keymap..."
-# Define default locale and keymap settings
-default_locale="en_US.UTF-8"
-timezone="Europe/Paris"
-
-echo "Setting up the disk..."
 # Partition the disk using parted
+echo "Setting up the disk..."
 parted --script ${LOOP_DEVICE} mklabel msdos
 parted --script ${LOOP_DEVICE} mkpart primary fat32 1MiB 257MiB
 parted --script ${LOOP_DEVICE} set 1 lba on

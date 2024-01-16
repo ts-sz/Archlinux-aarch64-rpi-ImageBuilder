@@ -11,8 +11,9 @@ jobs:
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
       RPI_MODEL: 5
       ARM_VERSION: aarch64
-      # WORKDIR_BASE: /mnt/github-actions/${{ github.repository }}/branches/${{ github.ref_name }}/${{ github.run_id }}/${{ env.ARM_VERSION }}/${{ env.RPI_MODEL }}
-      # LOOP_IMAGE_PATH: ${{ env.WORKDIR_BASE }}/archlinux-${{ env.ARM_VERSION }}-rpi-${{ env.RPI_MODEL }}.img
+      ARCH_AARCH_IMG_URL: http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz
+      ARCH_AARCH_IMG_URL_MD5: http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz.md5
+
     runs-on: self-hosted
     environment: main
     # container: archlinux:latest
@@ -20,78 +21,78 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
-    - name: Setup RPI Hostname
-      run: |
-        echo "RPI_HOSTNAME=sz-${{ env.ARM_VERSION }}-rpi${{ env.RPI_MODEL }}" >> $GITHUB_ENV
+    # - name: Setup RPI Hostname
+    #   run: |
+    #     echo "RPI_HOSTNAME=sz-arch-${{ env.ARM_VERSION }}-rpi${{ env.RPI_MODEL }}" >> $GITHUB_ENV
 
-    - name: Set up WORKDIR_BASE
-      run: |
-        echo "WORKDIR_BASE=/mnt/github-actions/${{ github.repository }}/branches/${{ github.ref_name }}/${{ github.run_id }}/${ARM_VERSION}/rpi${RPI_MODEL}" >> $GITHUB_ENV
+    # - name: Set up WORKDIR_BASE
+    #   run: |
+    #     echo "WORKDIR_BASE=/mnt/github-actions/${{ github.repository }}/branches/${{ github.ref_name }}/${{ github.run_id }}/${ARM_VERSION}/rpi${RPI_MODEL}" >> $GITHUB_ENV
 
-    - name: Set up LOOP_IMAGE_PATH
-      run: |
-        echo "LOOP_IMAGE_PATH=${WORKDIR_BASE}/archlinux-${ARM_VERSION}-rpi${RPI_MODEL}.img" >> $GITHUB_ENV
+    # - name: Set up LOOP_IMAGE_PATH
+    #   run: |
+    #     echo "LOOP_IMAGE_PATH=${WORKDIR_BASE}/sz-arch-${ARM_VERSION}-rpi${RPI_MODEL}.img" >> $GITHUB_ENV
 
-    - name: Detect Linux Distribution
-      id: detect-distro
-      run: |
-        echo "DISTRO=$(cat /etc/*-release | grep ^ID= | cut -d'=' -f2)" >> $GITHUB_ENV    
+    # - name: Detect Linux Distribution
+    #   id: detect-distro
+    #   run: |
+    #     echo "DISTRO=$(cat /etc/*-release | grep ^ID= | cut -d'=' -f2)" >> $GITHUB_ENV    
 
     - name: Display All Environment Variables
       run: |
         printenv
 
-    - name: Update system and install dependencies for Arch Linux
-      if: env.DISTRO == 'arch'
-      run: |
-        sudo pacman -Syu --noconfirm
-        sudo pacman -S --noconfirm qemu-user-static-binfmt qemu-user-static dosfstools wget libarchive sudo  arch-install-scripts
+    # - name: Update system and install dependencies for Arch Linux
+    #   if: env.DISTRO == 'arch'
+    #   run: |
+    #     sudo pacman -Syu --noconfirm
+    #     sudo pacman -S --noconfirm qemu-user-static-binfmt qemu-user-static dosfstools wget libarchive sudo  arch-install-scripts
     
-    - name: Update system and install dependencies for Ubuntu
-      if: env.DISTRO == 'ubuntu'
-      run: |
-        sudo apt update
-        sudo apt-get install -y arch-install-scripts qemu-user-static binfmt-support dosfstools wget libarchive-tools sudo
+    # - name: Update system and install dependencies for Ubuntu
+    #   if: env.DISTRO == 'ubuntu'
+    #   run: |
+    #     sudo apt update
+    #     sudo apt-get install -y arch-install-scripts qemu-user-static binfmt-support dosfstools wget libarchive-tools sudo
 
-    - name: Create Work Folder and apply permissions
-      run: |
-        sudo mkdir -p $WORKDIR_BASE
-        sudo chown -R $USER:$USER $WORKDIR_BASE
-        echo "Created $WORKDIR_BASE and applied permissions"
+    # - name: Create Work Folder and apply permissions
+    #   run: |
+    #     sudo mkdir -p $WORKDIR_BASE
+    #     sudo chown -R $USER:$USER $WORKDIR_BASE
+    #     echo "Created $WORKDIR_BASE and applied permissions"
 
-    - name: Create Image File
-      run: |
-        fallocate -l $LOOP_IMAGE_SIZE $LOOP_IMAGE_PATH
+    # - name: Create Image File
+    #   run: |
+    #     fallocate -l $LOOP_IMAGE_SIZE $LOOP_IMAGE_PATH
 
-    - name: Setup Loop Device
-      run: |
-        sudo losetup -fP $LOOP_IMAGE_PATH
-        LOOP_DEVICE=$(sudo losetup -j $LOOP_IMAGE_PATH | cut -d: -f1)
-        echo "Loop device is $LOOP_DEVICE"
-        echo "LOOP_DEVICE=$LOOP_DEVICE" >> $GITHUB_ENV
+    # - name: Setup Loop Device
+    #   run: |
+    #     sudo losetup -fP $LOOP_IMAGE_PATH
+    #     LOOP_DEVICE=$(sudo losetup -j $LOOP_IMAGE_PATH | cut -d: -f1)
+    #     echo "Loop device is $LOOP_DEVICE"
+    #     echo "LOOP_DEVICE=$LOOP_DEVICE" >> $GITHUB_ENV
 
-    - name: Run Build Script
-      run: |
-        sudo chmod +x ./build-archlinux-rpi-aarch64-img.sh
-        sudo ./build-archlinux-rpi-aarch64-img.sh $LOOP_DEVICE $RPI_MODEL $ARM_VERSION $WORKDIR_BASE $RPI_HOSTNAME
+    # - name: Run Build Script
+    #   run: |
+    #     sudo chmod +x ./build-archlinux-rpi-aarch64-img.sh
+    #     sudo ./build-archlinux-rpi-aarch64-img.sh $LOOP_DEVICE $RPI_MODEL $ARM_VERSION $WORKDIR_BASE $RPI_HOSTNAME
 
-    - name: Upload Image and Get URL
-      if: success()
-      run: |
-        ISO_URL=$(curl --upload-file $LOOP_IMAGE_PATH https://pub.strat.zone/)
-        echo "ISO_URL=$ISO_URL" >> $GITHUB_ENV
+    # - name: Upload Image and Get URL
+    #   if: success()
+    #   run: |
+    #     ISO_URL=$(curl --upload-file $LOOP_IMAGE_PATH https://pub.strat.zone/)
+    #     echo "ISO_URL=$ISO_URL" >> $GITHUB_ENV
 
-    - name: Notify Success
-      if: success()
-      run: |
-        SUCCESS_MESSAGE="🎉 Awesome! The Raspberry Pi image build succeeded 🚀\nAuthor: ${{ github.actor }}\nBranch: ${{ github.ref }}\nCommit Message: ${{ github.event.head_commit.message }}\n[View Last Commit](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) 📜\nThe custom-built Archlinux image for Raspberry Pi Model ${{ env.RPI_MODEL }} with ${{ env.ARM_VERSION }} architecture is now available for download:\n[Download Image]($ISO_URL) 📦\nFilename: archlinux-${{ env.ARM_VERSION }}-rpi-${{ env.RPI_MODEL }}.img"
-        curl -X POST -H "Content-Type: application/json" -d "{\"content\": \"$SUCCESS_MESSAGE\"}" $DISCORD_WEBHOOK_URL  
+    # - name: Notify Success
+    #   if: success()
+    #   run: |
+    #     SUCCESS_MESSAGE="🎉 Awesome! The Raspberry Pi image build succeeded 🚀\nAuthor: ${{ github.actor }}\nBranch: ${{ github.ref }}\nCommit Message: ${{ github.event.head_commit.message }}\n[View Last Commit](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) 📜\nThe custom-built Archlinux image for Raspberry Pi Model ${{ env.RPI_MODEL }} with ${{ env.ARM_VERSION }} architecture is now available for download:\n[Download Image]($ISO_URL) 📦\nFilename: archlinux-${{ env.ARM_VERSION }}-rpi-${{ env.RPI_MODEL }}.img"
+    #     curl -X POST -H "Content-Type: application/json" -d "{\"content\": \"$SUCCESS_MESSAGE\"}" $DISCORD_WEBHOOK_URL  
 
-    - name: Notify Failure
-      if: failure()
-      run: |
-        FAILURE_MESSAGE="😞 Oops! The pipeline for **${{ github.repository }}** has failed.\n[Check the logs and troubleshoot here.](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) 🛠️"
-        curl -X POST -H "Content-Type: application/json" -d "{\"content\": \"$FAILURE_MESSAGE\"}" $DISCORD_WEBHOOK_URL
+    # - name: Notify Failure
+    #   if: failure()
+    #   run: |
+    #     FAILURE_MESSAGE="😞 Oops! The pipeline for **${{ github.repository }}** has failed.\n[Check the logs and troubleshoot here.](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) 🛠️"
+    #     curl -X POST -H "Content-Type: application/json" -d "{\"content\": \"$FAILURE_MESSAGE\"}" $DISCORD_WEBHOOK_URL
 
     # - name: Umount Loop Device
     #   if: always()
