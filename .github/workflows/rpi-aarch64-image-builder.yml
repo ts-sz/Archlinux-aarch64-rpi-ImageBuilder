@@ -22,7 +22,7 @@ jobs:
     - name: Generate Dynamic Variables
       run: |
         echo "RPI_HOSTNAME=sz-arch-${{ env.ARM_VERSION }}-rpi${{ env.RPI_MODEL }}" >> $GITHUB_ENV
-        echo "WORKDIR_BASE=/mnt/github-actions/${{ github.repository }}/branches/${{ github.ref_name }}/${{ github.run_id }}/${{ env.ARM_VERSION }}/rpi$${{ RPI_MODEL }}" >> $GITHUB_ENV
+        echo "WORKDIR_BASE=${{ github.workspace }}/run-${{ github.run_id }}" >> $GITHUB_ENV
         echo "LOOP_IMAGE_PATH=${{ env.WORKDIR_BASE }}/sz-arch-${{ env.ARM_VERSION }}-rpi${{ RPI_MODEL }}.img" >> $GITHUB_ENV
         echo "DISTRO=$(cat /etc/*-release | grep ^ID= | cut -d'=' -f2)" >> $GITHUB_ENV
         echo "ARCH_AARCH64_IMG_URL=http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz" >> $GITHUB_ENV
@@ -32,34 +32,34 @@ jobs:
       run: |
         printenv
 
-    # - name: Update system and install dependencies for Arch Linux
-    #   if: env.DISTRO == 'arch'
-    #   run: |
-    #     sudo pacman -Syu --noconfirm
-    #     sudo pacman -S --noconfirm qemu-user-static-binfmt qemu-user-static dosfstools wget libarchive sudo  arch-install-scripts
+    - name: Update system and install dependencies for Arch Linux
+      if: env.DISTRO == 'arch'
+      run: |
+        sudo pacman -Syu --noconfirm
+        sudo pacman -S --noconfirm qemu-user-static-binfmt qemu-user-static dosfstools wget libarchive sudo  arch-install-scripts
     
-    # - name: Update system and install dependencies for Ubuntu
-    #   if: env.DISTRO == 'ubuntu'
-    #   run: |
-    #     sudo apt update
-    #     sudo apt-get install -y arch-install-scripts qemu-user-static binfmt-support dosfstools wget libarchive-tools sudo
+    - name: Update system and install dependencies for Ubuntu
+      if: env.DISTRO == 'ubuntu'
+      run: |
+        sudo apt update
+        sudo apt-get install -y arch-install-scripts qemu-user-static binfmt-support dosfstools wget libarchive-tools sudo
 
-    # - name: Create Work Folder and apply permissions
-    #   run: |
-    #     sudo mkdir -p $WORKDIR_BASE
-    #     sudo chown -R $USER:$USER $WORKDIR_BASE
-    #     echo "Created $WORKDIR_BASE and applied permissions"
+    - name: Create Work Folder and apply permissions
+      run: |
+        sudo mkdir -p $WORKDIR_BASE
+        sudo chown -R $USER:$USER $WORKDIR_BASE
+        echo "Created $WORKDIR_BASE and applied permissions"
 
-    # - name: Create Image File
-    #   run: |
-    #     fallocate -l $LOOP_IMAGE_SIZE $LOOP_IMAGE_PATH
+    - name: Create Image File
+      run: |
+        fallocate -l $LOOP_IMAGE_SIZE $LOOP_IMAGE_PATH
 
-    # - name: Setup Loop Device
-    #   run: |
-    #     sudo losetup -fP $LOOP_IMAGE_PATH
-    #     LOOP_DEVICE=$(sudo losetup -j $LOOP_IMAGE_PATH | cut -d: -f1)
-    #     echo "Loop device is $LOOP_DEVICE"
-    #     echo "LOOP_DEVICE=$LOOP_DEVICE" >> $GITHUB_ENV
+    - name: Setup Loop Device
+      run: |
+        sudo losetup -fP $LOOP_IMAGE_PATH
+        LOOP_DEVICE=$(sudo losetup -j $LOOP_IMAGE_PATH | cut -d: -f1)
+        echo "Loop device is $LOOP_DEVICE"
+        echo "LOOP_DEVICE=$LOOP_DEVICE" >> $GITHUB_ENV
 
     # - name: Run Build Script
     #   run: |
