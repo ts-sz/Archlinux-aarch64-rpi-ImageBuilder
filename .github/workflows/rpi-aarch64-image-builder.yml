@@ -11,14 +11,19 @@ jobs:
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
       RPI_MODEL: 5
       ARM_VERSION: aarch64
-      WORKDIR_BASE: /mnt/github-actions/${{ github.repository }}/branches/${{ github.ref_name }}/${{ github.run_id }}/${{ env.ARM_VERSION }}/${{ env.RPI_MODEL }}
-      LOOP_IMAGE_PATH: ${{ env.WORKDIR_BASE }}/archlinux-${{ env.ARM_VERSION }}-rpi-${{ env.RPI_MODEL }}.img
+      # WORKDIR_BASE: /mnt/github-actions/${{ github.repository }}/branches/${{ github.ref_name }}/${{ github.run_id }}/${{ env.ARM_VERSION }}/${{ env.RPI_MODEL }}
+      # LOOP_IMAGE_PATH: ${{ env.WORKDIR_BASE }}/archlinux-${{ env.ARM_VERSION }}-rpi-${{ env.RPI_MODEL }}.img
     runs-on: self-hosted
     environment: main
     # container: archlinux:latest
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
+
+    - name: Set up WORKDIR_BASE and LOOP_IMAGE_PATH
+      run: |
+        echo "WORKDIR_BASE=/mnt/github-actions/${{ github.repository }}/branches/${{ github.ref_name }}/${{ github.run_id }}/${ARM_VERSION}/${RPI_MODEL}" >> $GITHUB_ENV
+        echo "LOOP_IMAGE_PATH=${WORKDIR_BASE}/archlinux-${ARM_VERSION}-rpi-${RPI_MODEL}.img" >> $GITHUB_ENV
 
     - name: Detect Linux Distribution
       id: detect-distro
