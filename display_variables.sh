@@ -2,4 +2,5 @@
 
 echo "All environment variables:"
 
-set | grep -v '^_'
+echo $TIMEZONE
+echo $PACKAGES
