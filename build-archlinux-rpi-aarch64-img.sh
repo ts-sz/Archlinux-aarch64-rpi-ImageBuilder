@@ -19,6 +19,10 @@ IF9fLyAKX19fXy8gXF9ffCBffCAgIFxfXyxffCBcX198IFxfX198IFxfXywgfCBffCBcX19ffCAg
 IF9fX3wgXF9fXy8gIF98ICBffCBcX19ffCAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
 ICAgIHxfX18vICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAK" | base64 -d
 
+# variables
+INSTALL_RPI_KERNEL=false
+ROOT_PASSWORD="toortoor!"
+
 WORKDIR_BASE="$1"
 DEFAULT_LOCALE="$2"
 KEYMAP="$3"
@@ -64,13 +68,21 @@ echo "Installing packages..."
 # Install packages
 arch-chroot $WORKDIR_BASE/root pacman -S --noconfirm $PACKAGES
 
-echo "Installing linux-${$RPI_MODEL} kernel and eeprom..."
-arch-chroot $WORKDIR_BASE/root pacman -S --noconfirm rpi${RPI_MODEL}-eeprom
+# Install linux-rpiX kernel and eeprom
+# create a if statement to check if variable INSTALL_RPI_KERNEL is true
+if [ "$INSTALL_RPI_KERNEL" = true ] ; then
+  echo "Installing linux-${$RPI_MODEL} kernel and eeprom..."
+  arch-chroot $WORKDIR_BASE/root pacman -S --noconfirm rpi${RPI_MODEL}-eeprom
+fi
 
 echo "Setup hostname..."
 # Set the hostname
 arch-chroot $WORKDIR_BASE/root /bin/bash -c "echo \"$RPI_HOSTNAME\" | tee /etc/hostname"
 arch-chroot $WORKDIR_BASE/root hostnamectl set-hostname "$RPI_HOSTNAME"
+
+echo "Setting a new root password..."
+# Change the root password
+arch-chroot $WORKDIR_BASE/root /bin/bash -c "echo root:$ROOT_PASSWORD | chpasswd"
 
 echo "Setup network..."
 # delete all network files in /etc/systemd/network
