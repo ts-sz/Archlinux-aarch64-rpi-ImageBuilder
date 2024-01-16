@@ -10,6 +10,7 @@ jobs:
       LOOP_IMAGE_SIZE: 4G
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
       RPI_MODEL: 5
+      RPI_HOSTNAME: sz-rpi-aarch64-99
       ARM_VERSION: aarch64
       # WORKDIR_BASE: /mnt/github-actions/${{ github.repository }}/branches/${{ github.ref_name }}/${{ github.run_id }}/${{ env.ARM_VERSION }}/${{ env.RPI_MODEL }}
       # LOOP_IMAGE_PATH: ${{ env.WORKDIR_BASE }}/archlinux-${{ env.ARM_VERSION }}-rpi-${{ env.RPI_MODEL }}.img
@@ -26,7 +27,7 @@ jobs:
 
     - name: Set up LOOP_IMAGE_PATH
       run: |
-        echo "LOOP_IMAGE_PATH=${WORKDIR_BASE}/archlinux-${ARM_VERSION}-rpi-${RPI_MODEL}.img" >> $GITHUB_ENV
+        echo "LOOP_IMAGE_PATH=${WORKDIR_BASE}/archlinux-${ARM_VERSION}-rpi${RPI_MODEL}.img" >> $GITHUB_ENV
 
     - name: Detect Linux Distribution
       id: detect-distro
@@ -69,7 +70,7 @@ jobs:
     - name: Run Build Script
       run: |
         sudo chmod +x ./build-archlinux-rpi-aarch64-img.sh
-        sudo ./build-archlinux-rpi-aarch64-img.sh $LOOP_DEVICE $RPI_MODEL $ARM_VERSION $WORKDIR_BASE
+        sudo ./build-archlinux-rpi-aarch64-img.sh $LOOP_DEVICE $RPI_MODEL $ARM_VERSION $WORKDIR_BASE $RPI_HOSTNAME
 
     - name: Upload Image and Get URL
       if: success()

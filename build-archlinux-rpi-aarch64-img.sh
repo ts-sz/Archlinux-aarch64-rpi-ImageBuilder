@@ -30,8 +30,6 @@ echo "Restarting systemd-binfmt.service..."
 systemctl restart systemd-binfmt.service
 
 echo "Setting variables..."
-rpi_hostname="sz-rpi-aarch64-99"
-
 archlinuxarm="http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz"
 archlinuxarm_md5="http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz.md5"
 
@@ -39,6 +37,7 @@ LOOP_DEVICE="${1}"
 RPI_MODEL=$2
 ARM_VERSION="${3}"
 WORKDIR_BASE="${4}"
+RPI_HOSTNAME="${5}"
 
 # Check if the disk exists
 echo "Checking if the disk $LOOP_DEVICE exists..."
@@ -81,8 +80,8 @@ mount ${LOOP_DEVICE}p1 "${WORKDIR_BASE}/root/boot"
 echo "Downloading images..."
 if [ ! -f "$WORKDIR_BASE/ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz" ] || [ ! -f "$WORKDIR_BASE/ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz.md5" ]; then
   # Download the image and the MD5 checksum file
-  wget --quiet "${archlinuxarm}" -O "$WORKDIR_BASE/ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz"
-  wget --quiet "${archlinuxarm_md5}" -O "$WORKDIR_BASE/ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz.md5"
+  wget "${archlinuxarm}" -O "$WORKDIR_BASE/ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz"
+  wget "${archlinuxarm_md5}" -O "$WORKDIR_BASE/ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz.md5"
 fi
 
 # Verify MD5 checksum
@@ -154,8 +153,8 @@ fi
 
 echo "Setup hostname..."
 # Set the hostname
-echo "$rpi_hostname" > $WORKDIR_BASE/root/etc/hostname
-arch-chroot $WORKDIR_BASE/root hostnamectl set-hostname "$rpi_hostname"
+echo "$RPI_HOSTNAME" > $WORKDIR_BASE/root/etc/hostname
+arch-chroot $WORKDIR_BASE/root hostnamectl set-hostname "$RPI_HOSTNAME"
 
 echo "Setup network..."
 # delete all network files in /etc/systemd/network
