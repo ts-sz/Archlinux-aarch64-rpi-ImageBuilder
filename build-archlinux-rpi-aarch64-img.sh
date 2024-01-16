@@ -19,12 +19,6 @@ IF9fLyAKX19fXy8gXF9ffCBffCAgIFxfXyxffCBcX198IFxfX198IFxfXywgfCBffCBcX19ffCAg
 IF9fX3wgXF9fXy8gIF98ICBffCBcX19ffCAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
 ICAgIHxfX18vICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAK" | base64 -d
 
-# Check if the user is root
-if [[ $EUID -ne 0 ]]; then
-  echo "This script must be run as root"
-  exit 1
-fi
-
 # Restart teh service systemd-binfmt.service
 echo "Restarting systemd-binfmt.service..."
 systemctl restart systemd-binfmt.service
@@ -38,25 +32,6 @@ fi
 
 echo "YES! ls -l $LOOP_DEVICE"
 exit 0
-# Partition the disk using parted
-echo "Setting up the disk..."
-parted --script ${LOOP_DEVICE} mklabel msdos
-parted --script ${LOOP_DEVICE} mkpart primary fat32 1MiB 257MiB
-parted --script ${LOOP_DEVICE} set 1 lba on
-parted --script ${LOOP_DEVICE} mkpart primary 257MiB 100%
-
-# Create file systems
-echo "Creating file systems..."
-mkfs.vfat ${LOOP_DEVICE}p1 -F 32 -n PI-BOOT
-mkfs.ext4 -q -E lazy_itable_init=0,lazy_journal_init=0 -F ${LOOP_DEVICE}p2 -L PI-ROOT
-
-# Mount partitions
-echo "Mounting partitions..."
-mkdir -p "${WORKDIR_BASE}/root"
-mount ${LOOP_DEVICE}p2 "${WORKDIR_BASE}/root"
-mkdir -p "${WORKDIR_BASE}/root/boot"
-mount ${LOOP_DEVICE}p1 "${WORKDIR_BASE}/root/boot"
-
 
 # If the checksum is correct, proceed with extraction
 echo "Extracting root filesystem..."
