@@ -25,94 +25,94 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Generate Dynamic Variables
-      run: |
-        echo "RPI_HOSTNAME=sz-arch-${{ env.ARM_VERSION }}-rpi${{ env.RPI_MODEL }}" >> $GITHUB_ENV
-        echo "WORKDIR_BASE=${{ github.workspace }}/run-${{ github.run_id }}" >> $GITHUB_ENV
-        echo "LOOP_IMAGE_PATH=${{ github.workspace }}/run-${{ github.run_id }}/sz-arch-${{ env.ARM_VERSION }}-rpi${{ env.RPI_MODEL }}.img" >> $GITHUB_ENV
-        echo "DISTRO=$(cat /etc/*-release | grep ^ID= | cut -d'=' -f2)" >> $GITHUB_ENV
-        echo "ARCH_AARCH64_IMG_URL=http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz" >> $GITHUB_ENV
-        echo "ARCH_AARCH64_IMG_URL_MD5=http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz.md5" >> $GITHUB_ENV
+    # - name: Generate Dynamic Variables
+    #   run: |
+    #     echo "RPI_HOSTNAME=sz-arch-${{ env.ARM_VERSION }}-rpi${{ env.RPI_MODEL }}" >> $GITHUB_ENV
+    #     echo "WORKDIR_BASE=${{ github.workspace }}/run-${{ github.run_id }}" >> $GITHUB_ENV
+    #     echo "LOOP_IMAGE_PATH=${{ github.workspace }}/run-${{ github.run_id }}/sz-arch-${{ env.ARM_VERSION }}-rpi${{ env.RPI_MODEL }}.img" >> $GITHUB_ENV
+    #     echo "DISTRO=$(cat /etc/*-release | grep ^ID= | cut -d'=' -f2)" >> $GITHUB_ENV
+    #     echo "ARCH_AARCH64_IMG_URL=http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz" >> $GITHUB_ENV
+    #     echo "ARCH_AARCH64_IMG_URL_MD5=http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz.md5" >> $GITHUB_ENV
 
-    - name: Display All Environment Variables
-      run: |
-        printenv
+    # - name: Display All Environment Variables
+    #   run: |
+    #     printenv
 
-    - name: Update system and install dependencies for Arch Linux
-      if: env.INSTALL_REQUIREMENTS == 'true' && env.DISTRO == 'arch'
-      run: |
-        sudo pacman -Syu --noconfirm
-        sudo pacman -S --noconfirm qemu-user-static-binfmt qemu-user-static dosfstools wget libarchive sudo  arch-install-scripts
+    # - name: Update system and install dependencies for Arch Linux
+    #   if: env.INSTALL_REQUIREMENTS == 'true' && env.DISTRO == 'arch'
+    #   run: |
+    #     sudo pacman -Syu --noconfirm
+    #     sudo pacman -S --noconfirm qemu-user-static-binfmt qemu-user-static dosfstools wget libarchive sudo  arch-install-scripts
     
-    - name: Update system and install dependencies for Ubuntu
-      if: env.INSTALL_REQUIREMENTS == 'true' && env.DISTRO == 'ubuntu'
-      run: |
-        sudo apt update
-        sudo apt-get install -y arch-install-scripts qemu-user-static binfmt-support dosfstools wget libarchive-tools sudo
+    # - name: Update system and install dependencies for Ubuntu
+    #   if: env.INSTALL_REQUIREMENTS == 'true' && env.DISTRO == 'ubuntu'
+    #   run: |
+    #     sudo apt update
+    #     sudo apt-get install -y arch-install-scripts qemu-user-static binfmt-support dosfstools wget libarchive-tools sudo
 
-    - name: Create Work Folder and apply permissions
-      run: |
-        sudo mkdir -p $WORKDIR_BASE
-        sudo chown -R $USER:$USER $WORKDIR_BASE
-        echo "Created $WORKDIR_BASE and applied permissions"
+    # - name: Create Work Folder and apply permissions
+    #   run: |
+    #     sudo mkdir -p $WORKDIR_BASE
+    #     sudo chown -R $USER:$USER $WORKDIR_BASE
+    #     echo "Created $WORKDIR_BASE and applied permissions"
 
-    - name: Create Image File
-      run: |
-        fallocate -l $LOOP_IMAGE_SIZE $LOOP_IMAGE_PATH
+    # - name: Create Image File
+    #   run: |
+    #     fallocate -l $LOOP_IMAGE_SIZE $LOOP_IMAGE_PATH
     
-    - name: Download Archlinux aarch64 Image
-      run: |
-        cd $WORKDIR_BASE
-        wget -q $ARCH_AARCH64_IMG_URL -O $WORKDIR_BASE/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz
-        wget -q $ARCH_AARCH64_IMG_URL_MD5 -O $WORKDIR_BASE/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz.md5
-        md5sum -c $WORKDIR_BASE/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz.md5
+    # - name: Download Archlinux aarch64 Image
+    #   run: |
+    #     cd $WORKDIR_BASE
+    #     wget -q $ARCH_AARCH64_IMG_URL -O $WORKDIR_BASE/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz
+    #     wget -q $ARCH_AARCH64_IMG_URL_MD5 -O $WORKDIR_BASE/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz.md5
+    #     md5sum -c $WORKDIR_BASE/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz.md5
 
-    - name: Setup Loop Device
-      run: |
-        sudo losetup -fP $LOOP_IMAGE_PATH
-        LOOP_DEVICE=$(sudo losetup -j $LOOP_IMAGE_PATH | cut -d: -f1)
-        echo "Loop device is $LOOP_DEVICE"
-        echo "LOOP_DEVICE=$LOOP_DEVICE" >> $GITHUB_ENV
+    # - name: Setup Loop Device
+    #   run: |
+    #     sudo losetup -fP $LOOP_IMAGE_PATH
+    #     LOOP_DEVICE=$(sudo losetup -j $LOOP_IMAGE_PATH | cut -d: -f1)
+    #     echo "Loop device is $LOOP_DEVICE"
+    #     echo "LOOP_DEVICE=$LOOP_DEVICE" >> $GITHUB_ENV
 
-    - name: Create Partitions
-      run: |
-        sudo parted --script $LOOP_DEVICE mklabel msdos
-        sudo parted --script $LOOP_DEVICE mkpart primary fat32 1MiB 257MiB
-        sudo parted --script $LOOP_DEVICE mkpart primary ext4 257MiB 100%
-        sudo parted --script $LOOP_DEVICE set 1 boot on
-        sudo parted --script $LOOP_DEVICE print
+    # - name: Create Partitions
+    #   run: |
+    #     sudo parted --script $LOOP_DEVICE mklabel msdos
+    #     sudo parted --script $LOOP_DEVICE mkpart primary fat32 1MiB 257MiB
+    #     sudo parted --script $LOOP_DEVICE mkpart primary ext4 257MiB 100%
+    #     sudo parted --script $LOOP_DEVICE set 1 boot on
+    #     sudo parted --script $LOOP_DEVICE print
 
-    - name: Format Partitions
-      run: |
-        sudo mkfs.vfat -F32 ${LOOP_DEVICE}p1 -n PI-BOOT
-        sudo mkfs.ext4 -q -E lazy_itable_init=0,lazy_journal_init=0 -F ${LOOP_DEVICE}p2 -L PI-ROOT
+    # - name: Format Partitions
+    #   run: |
+    #     sudo mkfs.vfat -F32 ${LOOP_DEVICE}p1 -n PI-BOOT
+    #     sudo mkfs.ext4 -q -E lazy_itable_init=0,lazy_journal_init=0 -F ${LOOP_DEVICE}p2 -L PI-ROOT
 
-    - name: Mount Partitions
-      run: |
-        sudo mkdir -p $WORKDIR_BASE/root
-        sudo mount ${LOOP_DEVICE}p2 $WORKDIR_BASE/root
-        sudo mkdir -p $WORKDIR_BASE/root/boot
-        sudo mount ${LOOP_DEVICE}p1 $WORKDIR_BASE/root/boot
+    # - name: Mount Partitions
+    #   run: |
+    #     sudo mkdir -p $WORKDIR_BASE/root
+    #     sudo mount ${LOOP_DEVICE}p2 $WORKDIR_BASE/root
+    #     sudo mkdir -p $WORKDIR_BASE/root/boot
+    #     sudo mount ${LOOP_DEVICE}p1 $WORKDIR_BASE/root/boot
     
-    - name: Extract Archlinux aarch64 Image
-      run: |
-        sudo bsdtar -xpf $WORKDIR_BASE/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz -C $WORKDIR_BASE/root
-        sudo sync
+    # - name: Extract Archlinux aarch64 Image
+    #   run: |
+    #     sudo bsdtar -xpf $WORKDIR_BASE/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz -C $WORKDIR_BASE/root
+    #     sudo sync
 
-    - name: Check if systemd-binfmt is started
-      run: |
-        sudo systemctl start systemd-binfmt
+    # - name: Check if systemd-binfmt is started
+    #   run: |
+    #     sudo systemctl start systemd-binfmt
 
-    - name: Make the new root folder a mount point
-      run: |
-        sudo mount --bind $WORKDIR_BASE/root $WORKDIR_BASE/root
-        sudo mount --bind $WORKDIR_BASE/root/boot $WORKDIR_BASE/root/boot
+    # - name: Make the new root folder a mount point
+    #   run: |
+    #     sudo mount --bind $WORKDIR_BASE/root $WORKDIR_BASE/root
+    #     sudo mount --bind $WORKDIR_BASE/root/boot $WORKDIR_BASE/root/boot
 
     - name: Run Build Script
       run: |
         export $WORKDIR_BASE
-        sudo chmod +x ./build-archlinux-rpi-aarch64-img.sh
-        sudo ./build-archlinux-rpi-aarch64-img.sh
+        sudo chmod +x ./display_variables.sh
+        sudo ./display_variables.sh
 
 
     # - name: Upload Image and Get URL
