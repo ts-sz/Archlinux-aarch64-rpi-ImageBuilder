@@ -21,22 +21,12 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    # - name: Setup RPI Hostname
-    #   run: |
-    #     echo "RPI_HOSTNAME=sz-arch-${{ env.ARM_VERSION }}-rpi${{ env.RPI_MODEL }}" >> $GITHUB_ENV
-
-    # - name: Set up WORKDIR_BASE
-    #   run: |
-    #     echo "WORKDIR_BASE=/mnt/github-actions/${{ github.repository }}/branches/${{ github.ref_name }}/${{ github.run_id }}/${ARM_VERSION}/rpi${RPI_MODEL}" >> $GITHUB_ENV
-
-    # - name: Set up LOOP_IMAGE_PATH
-    #   run: |
-    #     echo "LOOP_IMAGE_PATH=${WORKDIR_BASE}/sz-arch-${ARM_VERSION}-rpi${RPI_MODEL}.img" >> $GITHUB_ENV
-
-    # - name: Detect Linux Distribution
-    #   id: detect-distro
-    #   run: |
-    #     echo "DISTRO=$(cat /etc/*-release | grep ^ID= | cut -d'=' -f2)" >> $GITHUB_ENV    
+    - name: Generate Dynamic Variables
+      run: |
+        echo "RPI_HOSTNAME=sz-arch-${{ env.ARM_VERSION }}-rpi${{ env.RPI_MODEL }}" >> $GITHUB_ENV
+        echo "WORKDIR_BASE=/mnt/github-actions/${{ github.repository }}/branches/${{ github.ref_name }}/${{ github.run_id }}/${ARM_VERSION}/rpi${RPI_MODEL}" >> $GITHUB_ENV
+        echo "LOOP_IMAGE_PATH=${WORKDIR_BASE}/sz-arch-${ARM_VERSION}-rpi${RPI_MODEL}.img" >> $GITHUB_ENV
+        echo "DISTRO=$(cat /etc/*-release | grep ^ID= | cut -d'=' -f2)" >> $GITHUB_ENV
 
     - name: Display All Environment Variables
       run: |
