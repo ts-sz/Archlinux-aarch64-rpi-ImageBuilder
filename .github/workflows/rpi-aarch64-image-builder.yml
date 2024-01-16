@@ -23,7 +23,7 @@ jobs:
       run: |
         echo "RPI_HOSTNAME=sz-arch-${{ env.ARM_VERSION }}-rpi${{ env.RPI_MODEL }}" >> $GITHUB_ENV
         echo "WORKDIR_BASE=${{ github.workspace }}/run-${{ github.run_id }}" >> $GITHUB_ENV
-        echo "LOOP_IMAGE_PATH=${{ env.WORKDIR_BASE }}/sz-arch-${{ env.ARM_VERSION }}-rpi${{ RPI_MODEL }}.img" >> $GITHUB_ENV
+        echo "LOOP_IMAGE_PATH=${{ env.WORKDIR_BASE }}/sz-arch-${{ env.ARM_VERSION }}-rpi${{ env.RPI_MODEL }}.img" >> $GITHUB_ENV
         echo "DISTRO=$(cat /etc/*-release | grep ^ID= | cut -d'=' -f2)" >> $GITHUB_ENV
         echo "ARCH_AARCH64_IMG_URL=http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz" >> $GITHUB_ENV
         echo "ARCH_AARCH64_IMG_URL_MD5=http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz.md5" >> $GITHUB_ENV
