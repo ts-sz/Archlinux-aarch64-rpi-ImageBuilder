@@ -110,7 +110,6 @@ jobs:
 
     - name: Run Build Script
       run: |
-        export $WORKDIR_BASE
         sudo chmod +x ./display_variables.sh
         sudo ./display_variables.sh
 
