@@ -20,9 +20,12 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
-    - name: Set up WORKDIR_BASE and LOOP_IMAGE_PATH
+    - name: Set up WORKDIR_BASE
       run: |
         echo "WORKDIR_BASE=/mnt/github-actions/${{ github.repository }}/branches/${{ github.ref_name }}/${{ github.run_id }}/${ARM_VERSION}/${RPI_MODEL}" >> $GITHUB_ENV
+
+    - name: Set up LOOP_IMAGE_PATH
+      run: |
         echo "LOOP_IMAGE_PATH=${WORKDIR_BASE}/archlinux-${ARM_VERSION}-rpi-${RPI_MODEL}.img" >> $GITHUB_ENV
 
     - name: Detect Linux Distribution
