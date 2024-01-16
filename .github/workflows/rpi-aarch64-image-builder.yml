@@ -10,7 +10,7 @@ jobs:
       LOOP_IMAGE: archlinux-aarch64-rpi.img
       LOOP_IMAGE_SIZE: 4G
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-      RPI_MODEL: 4
+      RPI_MODEL: 5
       ARM_VERSION: aarch64
       DEFAULT_LOCALE: en_US.UTF-8
       TIMEZONE: Europe/Paris
@@ -121,23 +121,23 @@ jobs:
           "$RPI_HOSTNAME" \
           "$SSH_PUB_KEY"
 
-    # - name: Upload Image and Get URL
-    #   if: success()
-    #   run: |
-    #     ISO_URL=$(curl --upload-file $LOOP_IMAGE_PATH https://pub.strat.zone/)
-    #     echo "ISO_URL=$ISO_URL" >> $GITHUB_ENV
+    - name: Upload Image and Get URL
+      if: success()
+      run: |
+        ISO_URL=$(curl --upload-file $LOOP_IMAGE_PATH https://pub.strat.zone/)
+        echo "ISO_URL=$ISO_URL" >> $GITHUB_ENV
 
-    # - name: Notify Success
-    #   if: success()
-    #   run: |
-    #     SUCCESS_MESSAGE="🎉 Awesome! The Raspberry Pi image build succeeded 🚀\nAuthor: ${{ github.actor }}\nBranch: ${{ github.ref }}\nCommit Message: ${{ github.event.head_commit.message }}\n[View Last Commit](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) 📜\nThe custom-built Archlinux image for Raspberry Pi Model ${{ env.RPI_MODEL }} with ${{ env.ARM_VERSION }} architecture is now available for download:\n[Download Image]($ISO_URL) 📦\nFilename: archlinux-${{ env.ARM_VERSION }}-rpi-${{ env.RPI_MODEL }}.img"
-    #     curl -X POST -H "Content-Type: application/json" -d "{\"content\": \"$SUCCESS_MESSAGE\"}" $DISCORD_WEBHOOK_URL  
+    - name: Notify Success
+      if: success()
+      run: |
+        SUCCESS_MESSAGE="🎉 Awesome! The Raspberry Pi image build succeeded 🚀\nAuthor: ${{ github.actor }}\nBranch: ${{ github.ref }}\nCommit Message: ${{ github.event.head_commit.message }}\n[View Last Commit](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) 📜\nThe custom-built Archlinux image for Raspberry Pi Model ${{ env.RPI_MODEL }} with ${{ env.ARM_VERSION }} architecture is now available for download:\n[Download Image]($ISO_URL) 📦\nFilename: archlinux-${{ env.ARM_VERSION }}-rpi-${{ env.RPI_MODEL }}.img"
+        curl -X POST -H "Content-Type: application/json" -d "{\"content\": \"$SUCCESS_MESSAGE\"}" $DISCORD_WEBHOOK_URL  
 
-    # - name: Notify Failure
-    #   if: failure()
-    #   run: |
-    #     FAILURE_MESSAGE="😞 Oops! The pipeline for **${{ github.repository }}** has failed.\n[Check the logs and troubleshoot here.](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) 🛠️"
-    #     curl -X POST -H "Content-Type: application/json" -d "{\"content\": \"$FAILURE_MESSAGE\"}" $DISCORD_WEBHOOK_URL
+    - name: Notify Failure
+      if: failure()
+      run: |
+        FAILURE_MESSAGE="😞 Oops! The pipeline for **${{ github.repository }}** has failed.\n[Check the logs and troubleshoot here.](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) 🛠️"
+        curl -X POST -H "Content-Type: application/json" -d "{\"content\": \"$FAILURE_MESSAGE\"}" $DISCORD_WEBHOOK_URL
 
     - name: Umount Loop Device
       if: always()
@@ -147,11 +147,11 @@ jobs:
         echo "Unmounted $WORKDIR_BASE"
         sync
 
-    # - name: Delete Work Folder
-    #   if: always()
-    #   run: |
-    #     sudo rm -rf $WORKDIR_BASE
-    #     echo "Work folder deleted"
+    - name: Delete Work Folder
+      if: always()
+      run: |
+        sudo rm -rf $WORKDIR_BASE
+        echo "Work folder deleted"
 
     - name: Release Loop Device
       if: always()

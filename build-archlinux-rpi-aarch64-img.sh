@@ -68,12 +68,17 @@ echo "Installing packages..."
 # Install packages
 arch-chroot $WORKDIR_BASE/root pacman -S --noconfirm $PACKAGES
 
-# Install linux-rpiX kernel and eeprom
-# create a if statement to check if variable INSTALL_RPI_KERNEL is true
+# Install linux-rpiX kernel and eeprom if variable INSTALL_RPI_KERNEL is true
 if [ "$INSTALL_RPI_KERNEL" = true ] ; then
   echo "Installing linux-${$RPI_MODEL} kernel and eeprom..."
   arch-chroot $WORKDIR_BASE/root pacman -S --noconfirm rpi${RPI_MODEL}-eeprom
 fi
+
+# Remove linux-aarch64 uboot-raspberrypi
+arch-chroot $WORKDIR_BASE/root pacman -R --noconfirm linux-aarch64 uboot-raspberrypi
+
+# install linux-rpi kernel and linux-rpi-headers
+arch-chroot $WORKDIR_BASE/root pacman -S --noconfirm linux-rpi linux-rpi-headers
 
 echo "Setup hostname..."
 # Set the hostname
