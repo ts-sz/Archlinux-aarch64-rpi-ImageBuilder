@@ -19,29 +19,9 @@ IF9fLyAKX19fXy8gXF9ffCBffCAgIFxfXyxffCBcX198IFxfX198IFxfXywgfCBffCBcX19ffCAg
 IF9fX3wgXF9fXy8gIF98ICBffCBcX19ffCAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
 ICAgIHxfX18vICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAK" | base64 -d
 
-# Restart teh service systemd-binfmt.service
-echo "Restarting systemd-binfmt.service..."
-systemctl restart systemd-binfmt.service
 
-# Check if the disk exists
-echo "Checking if the disk $LOOP_DEVICE exists..."
-if [ ! -b "$LOOP_DEVICE" ]; then
-  echo "The disk $LOOP_DEVICE does not exist. Exiting."
-  exit 1
-fi
-
-echo "YES! ls -l $LOOP_DEVICE"
+echo $WORKDIR_BASE
 exit 0
-
-# If the checksum is correct, proceed with extraction
-echo "Extracting root filesystem..."
-bsdtar -xpf "$WORKDIR_BASE/ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz" -C $WORKDIR_BASE/root
-sync
-
-# Make the new root folder a mount point
-echo "Making the new root folder a mount point..."
-mount --bind $WORKDIR_BASE/root $WORKDIR_BASE/root
-
 echo "Setting locale and keymap..."
 # Add locales to /etc/locale.gen within the chroot environment
 arch-chroot $WORKDIR_BASE/root sed -i -e '/^#en_US.UTF-8 UTF-8/s/^#//' \

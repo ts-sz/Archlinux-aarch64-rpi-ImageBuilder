@@ -93,11 +93,21 @@ jobs:
       run: |
         sudo bsdtar -xpf $WORKDIR_BASE/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz -C $WORKDIR_BASE/root
         sudo sync
-        
+
+    - name: Check if systemd-binfmt is started
+      run: |
+        sudo systemctl start systemd-binfmt
+
+    - name: Make the new root folder a mount point
+      run: |
+        sudo mount --bind $WORKDIR_BASE/root $WORKDIR_BASE/root
+        sudo mount --bind $WORKDIR_BASE/root/boot $WORKDIR_BASE/root/boot
+
     - name: Run Build Script
       run: |
         sudo chmod +x ./build-archlinux-rpi-aarch64-img.sh
         sudo ./build-archlinux-rpi-aarch64-img.sh
+
 
     # - name: Upload Image and Get URL
     #   if: success()
