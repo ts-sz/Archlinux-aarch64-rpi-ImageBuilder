@@ -22,11 +22,11 @@ jobs:
     - name: Generate Dynamic Variables
       run: |
         echo "RPI_HOSTNAME=sz-arch-${{ env.ARM_VERSION }}-rpi${{ env.RPI_MODEL }}" >> $GITHUB_ENV
-        echo "WORKDIR_BASE=/mnt/github-actions/${{ github.repository }}/branches/${{ github.ref_name }}/${{ github.run_id }}/${ARM_VERSION}/rpi${RPI_MODEL}" >> $GITHUB_ENV
-        echo "LOOP_IMAGE_PATH=${WORKDIR_BASE}/sz-arch-${ARM_VERSION}-rpi${RPI_MODEL}.img" >> $GITHUB_ENV
+        echo "WORKDIR_BASE=/mnt/github-actions/${{ github.repository }}/branches/${{ github.ref_name }}/${{ github.run_id }}/${{ env.ARM_VERSION }}/rpi$${{ RPI_MODEL }}" >> $GITHUB_ENV
+        echo "LOOP_IMAGE_PATH=${{ env.WORKDIR_BASE }}/sz-arch-${{ env.ARM_VERSION }}-rpi${{ RPI_MODEL }}.img" >> $GITHUB_ENV
         echo "DISTRO=$(cat /etc/*-release | grep ^ID= | cut -d'=' -f2)" >> $GITHUB_ENV
-        echo "ARCH_AARCH64_IMG_URL=http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz" >> $GITHUB_ENV
-        echo "ARCH_AARCH64_IMG_URL_MD5=http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz.md5" >> $GITHUB_ENV
+        echo "ARCH_AARCH64_IMG_URL=http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz" >> $GITHUB_ENV
+        echo "ARCH_AARCH64_IMG_URL_MD5=http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz.md5" >> $GITHUB_ENV
 
     - name: Display All Environment Variables
       run: |
