@@ -89,22 +89,22 @@ jobs:
         FAILURE_MESSAGE="😞 Oops! The pipeline for **${{ github.repository }}** has failed.\n[Check the logs and troubleshoot here.](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) 🛠️"
         curl -X POST -H "Content-Type: application/json" -d "{\"content\": \"$FAILURE_MESSAGE\"}" $DISCORD_WEBHOOK_URL
 
-    - name: Umount Loop Device
-      if: always()
-      run: |
-        sudo umount -R $WORKDIR_BASE || true
-        echo "Unmounted $WORKDIR_BASE"
+    # - name: Umount Loop Device
+    #   if: always()
+    #   run: |
+    #     sudo umount -R $WORKDIR_BASE || true
+    #     echo "Unmounted $WORKDIR_BASE"
 
-    - name: Delete Work Folder
-      if: always()
-      run: |
-        sudo rm -rf $WORKDIR_BASE
-        echo "Work folder deleted"
+    # - name: Delete Work Folder
+    #   if: always()
+    #   run: |
+    #     sudo rm -rf $WORKDIR_BASE
+    #     echo "Work folder deleted"
 
-    - name: Release Loop Device
-      if: always()
-      run: |
-        if [ -n "$LOOP_DEVICE" ]; then
-          sudo losetup -d $LOOP_DEVICE
-          echo "Loop device $LOOP_DEVICE released"
-        fi
+    # - name: Release Loop Device
+    #   if: always()
+    #   run: |
+    #     if [ -n "$LOOP_DEVICE" ]; then
+    #       sudo losetup -d $LOOP_DEVICE
+    #       echo "Loop device $LOOP_DEVICE released"
+    #     fi
