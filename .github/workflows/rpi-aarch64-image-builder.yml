@@ -56,6 +56,7 @@ jobs:
     
     - name: Download Archlinux aarch64 Image
       run: |
+        cd $WORKDIR_BASE
         wget $ARCH_AARCH64_IMG_URL -O $WORKDIR_BASE/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz
         wget $ARCH_AARCH64_IMG_URL_MD5 -O $WORKDIR_BASE/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz.md5
         md5sum -c $WORKDIR_BASE/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz.md5
