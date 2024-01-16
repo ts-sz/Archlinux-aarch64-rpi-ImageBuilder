@@ -109,9 +109,8 @@ jobs:
         sudo mount --bind $WORKDIR_BASE/root/boot $WORKDIR_BASE/root/boot
 
     - name: Run Build Script
-      env:
-        WORKDIR_BASE: ${{ env.WORKDIR_BASE }}
       run: |
+        export $WORKDIR_BASE
         sudo chmod +x ./build-archlinux-rpi-aarch64-img.sh
         sudo ./build-archlinux-rpi-aarch64-img.sh
 
