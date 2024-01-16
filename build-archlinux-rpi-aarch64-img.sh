@@ -31,10 +31,10 @@ SSH_PUB_KEY="$8"
 echo "Setting locale and keymap..."
 # Add locales to /etc/locale.gen within the chroot environment
 arch-chroot $WORKDIR_BASE/root sed -i -e '/^#en_US.UTF-8 UTF-8/s/^#//' \
-       -e '/^#en_US ISO-8859-1/s/^#//' \
-       -e '/^#fr_FR.UTF-8 UTF-8/s/^#//' \
-       -e '/^#fr_FR ISO-8859-1/s/^#//' \
-       -e '/^#fr_FR@euro ISO-8859-15/s/^#//' /etc/locale.gen
+  -e '/^#en_US ISO-8859-1/s/^#//' \
+  -e '/^#fr_FR.UTF-8 UTF-8/s/^#//' \
+  -e '/^#fr_FR ISO-8859-1/s/^#//' \
+  -e '/^#fr_FR@euro ISO-8859-15/s/^#//' /etc/locale.gen
 
 # Generate and set the default locale within the chroot environment
 arch-chroot $WORKDIR_BASE/root locale-gen
