@@ -69,8 +69,26 @@ jobs:
         echo "Loop device is $LOOP_DEVICE"
         echo "LOOP_DEVICE=$LOOP_DEVICE" >> $GITHUB_ENV
 
+    - name: Create Partitions
+      run: |
+        sudo parted --script $LOOP_DEVICE mklabel msdos
+        sudo parted --script $LOOP_DEVICE mkpart primary fat32 1MiB 257MiB
+        sudo parted --script $LOOP_DEVICE mkpart primary ext4 257MiB 100%
+        sudo parted --script $LOOP_DEVICE set 1 boot on
+        sudo parted --script $LOOP_DEVICE print
 
+    - name: Format Partitions
+      run: |
+        sudo mkfs.vfat -F32 ${LOOP_DEVICE}p1 -n PI-BOOT
+        sudo mkfs.ext4 -q -E lazy_itable_init=0,lazy_journal_init=0 -F ${LOOP_DEVICE}p2 -L PI-ROOT
 
+    - name: Mount Partitions
+      run: |
+        sudo mkdir -p $WORKDIR_BASE/root
+        sudo mount ${LOOP_DEVICE}p2 $WORKDIR_BASE/root
+        sudo mkdir -p $WORKDIR_BASE/root/boot
+        sudo mount ${LOOP_DEVICE}p1 $WORKDIR_BASE/root/boot
+        
     - name: Run Build Script
       run: |
         sudo chmod +x ./build-archlinux-rpi-aarch64-img.sh

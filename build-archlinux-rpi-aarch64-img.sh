@@ -57,22 +57,6 @@ mount ${LOOP_DEVICE}p2 "${WORKDIR_BASE}/root"
 mkdir -p "${WORKDIR_BASE}/root/boot"
 mount ${LOOP_DEVICE}p1 "${WORKDIR_BASE}/root/boot"
 
-# Download and extract root filesystem
-echo "Downloading images..."
-if [ ! -f "$WORKDIR_BASE/ArchLinuxARM-rpi-$ARM_VERSION-latest.tar.gz" ] || [ ! -f "$WORKDIR_BASE/ArchLinuxARM-rpi-$ARM_VERSION-latest.tar.gz.md5" ]; then
-  # Download the image and the MD5 checksum file
-  wget -U "$user_agent" "${archlinuxarm}" -O "$WORKDIR_BASE/ArchLinuxARM-rpi-$ARM_VERSION-latest.tar.gz"
-  wget -U "$user_agent" "${archlinuxarm_md5}" -O "$WORKDIR_BASE/ArchLinuxARM-rpi-$ARM_VERSION-latest.tar.gz.md5"
-fi
-
-# Verify MD5 checksum
-echo "Verifying MD5 checksum..."
-cd $WORKDIR_BASE
-md5sum --check "ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz.md5"
-if [ $? -ne 0 ]; then
-  echo "MD5 checksum does not match. Exiting."
-  exit 1
-fi
 
 # If the checksum is correct, proceed with extraction
 echo "Extracting root filesystem..."
