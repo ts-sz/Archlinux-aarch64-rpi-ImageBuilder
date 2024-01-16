@@ -8,11 +8,11 @@ jobs:
     env:
       LOOP_IMAGE: archlinux-aarch64-rpi.img
       LOOP_IMAGE_SIZE: 4G
-      LOOP_IMAGE_PATH: /mnt/github-actions/archlinux-aarch64-rpi.img
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
       RPI_MODEL: 5
       ARM_VERSION: aarch64
-      WORKDIR_BASE: /mnt/github-actions/${{ github.repository }}/branches/${{ github.ref_name }}/${{ github.run_id }}/$ARM_VERSION/$RPI_MODEL
+      WORKDIR_BASE: /mnt/github-actions/${{ github.repository }}/branches/${{ github.ref_name }}/${{ github.run_id }}/${{ env.ARM_VERSION }}/${{ env.RPI_MODEL }}
+      LOOP_IMAGE_PATH: ${{ env.WORKDIR_BASE }}/archlinux-${{ env.ARM_VERSION }}-rpi-${{ env.RPI_MODEL }}.img
     runs-on: self-hosted
     environment: main
     # container: archlinux:latest
@@ -62,8 +62,8 @@ jobs:
     - name: Notify Success
       if: success()
       run: |
-        SUCCESS_MESSAGE="🎉 Awesome! Deployment Succeeded 🚀\nAuthor: ${{ github.actor }}\nBranch: ${{ github.ref }}\nMessage: ${{ github.event.head_commit.message }}\n[Last Commit Diff:](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) 📜\nA new ISO is available for download:\n[Download ISO]($ISO_URL) 📦\nHostname: [hostname placeholder]"
-        curl -X POST -H "Content-Type: application/json" -d "{\"content\": \"$SUCCESS_MESSAGE\"}" $DISCORD_WEBHOOK_URL
+        SUCCESS_MESSAGE="🎉 Awesome! The Raspberry Pi image build succeeded 🚀\nAuthor: ${{ github.actor }}\nBranch: ${{ github.ref }}\nCommit Message: ${{ github.event.head_commit.message }}\n[View Last Commit](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) 📜\nThe custom-built Archlinux image for Raspberry Pi Model ${{ env.RPI_MODEL }} with ${{ env.ARM_VERSION }} architecture is now available for download:\n[Download Image]($ISO_URL) 📦\nFilename: archlinux-${{ env.ARM_VERSION }}-rpi-${{ env.RPI_MODEL }}.img"
+        curl -X POST -H "Content-Type: application/json" -d "{\"content\": \"$SUCCESS_MESSAGE\"}" $DISCORD_WEBHOOK_URL  
 
     - name: Notify Failure
       if: failure()
@@ -71,16 +71,16 @@ jobs:
         FAILURE_MESSAGE="😞 Oops! The pipeline for **${{ github.repository }}** has failed.\n[Check the logs and troubleshoot here.](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) 🛠️"
         curl -X POST -H "Content-Type: application/json" -d "{\"content\": \"$FAILURE_MESSAGE\"}" $DISCORD_WEBHOOK_URL
 
-    - name: Clean up Image File
+    - name: Umount Loop Device
       if: always()
       run: |
-        sudo rm -f $LOOP_IMAGE_PATH
-        echo "Cleaned up image file at $LOOP_IMAGE_PATH"
+        sudo umount -R $WORKDIR_BASE || true
+        echo "Unmounted $WORKDIR_BASE"
 
     - name: Delete Work Folder
       if: always()
       run: |
-        sudo rm -rf [chemin du dossier de travail]
+        sudo rm -rf $WORKDIR_BASE
         echo "Work folder deleted"
 
     - name: Unmount and Release Loop Device
