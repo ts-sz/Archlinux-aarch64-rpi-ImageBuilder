@@ -112,6 +112,8 @@ jobs:
       run: |
         sudo chmod +x ./display_variables.sh
         sudo ./display_variables.sh
+      env:
+        PACKAGES: lolo lolo lolo sdf sdf 
 
 
     # - name: Upload Image and Get URL
