@@ -29,14 +29,6 @@ fi
 echo "Restarting systemd-binfmt.service..."
 systemctl restart systemd-binfmt.service
 
-echo "Setting variables..."
-
-LOOP_DEVICE="${1}"
-RPI_MODEL="$2"
-ARM_VERSION="${3}"
-WORKDIR_BASE="${4}"
-RPI_HOSTNAME="${5}"
-
 # Check if the disk exists
 echo "Checking if the disk $LOOP_DEVICE exists..."
 if [ ! -b "$LOOP_DEVICE" ]; then
@@ -44,12 +36,8 @@ if [ ! -b "$LOOP_DEVICE" ]; then
   exit 1
 fi
 
-echo "Create $WORKDIR_BASE if not exists..."
-# Create the working directory if not exists
-if [ ! -d "$WORKDIR_BASE" ]; then
-  mkdir -p $WORKDIR_BASE
-fi
-
+echo "YES! ls -l $LOOP_DEVICE"
+exit 0
 # Partition the disk using parted
 echo "Setting up the disk..."
 parted --script ${LOOP_DEVICE} mklabel msdos
