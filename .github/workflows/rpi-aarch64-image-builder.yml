@@ -118,7 +118,8 @@ jobs:
           "$TIMEZONE" \
           "$PACKAGES" \
           "$RPI_MODEL" \
-          "$RPI_HOSTNAME"
+          "$RPI_HOSTNAME" \
+          "$SSH_PUB_KEY"
 
     # - name: Upload Image and Get URL
     #   if: success()

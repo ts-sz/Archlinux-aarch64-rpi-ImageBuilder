@@ -26,9 +26,8 @@ TIMEZONE="$4"
 PACKAGES="$5"
 RPI_MODEL="$6"
 RPI_HOSTNAME="$7"
+SSH_PUB_KEY="$8"
 
-echo "all variabels are $@"
-exit 0
 echo "Setting locale and keymap..."
 # Add locales to /etc/locale.gen within the chroot environment
 arch-chroot $WORKDIR_BASE/root sed -i -e '/^#en_US.UTF-8 UTF-8/s/^#//' \
@@ -39,13 +38,13 @@ arch-chroot $WORKDIR_BASE/root sed -i -e '/^#en_US.UTF-8 UTF-8/s/^#//' \
 
 # Generate and set the default locale within the chroot environment
 arch-chroot $WORKDIR_BASE/root locale-gen
-arch-chroot $WORKDIR_BASE/root /bin/bash -c 'echo "LANG=$DEFAULT_LOCALE" | tee /etc/locale.conf'
+arch-chroot $WORKDIR_BASE/root /bin/bash -c "echo \"LANG=${DEFAULT_LOCALE}\" | tee /etc/locale.conf"
 
 # Set the system locale within the chroot environment
-arch-chroot $WORKDIR_BASE/root /bin/bash -c "localectl set-locale LANG=$DEFAULT_LOCALE"
+arch-chroot $WORKDIR_BASE/root /bin/bash -c "echo \"LANG=${DEFAULT_LOCALE}\" | tee /etc/locale.conf"
 
 # Add keymap to vconsole.conf within the chroot environment
-arch-chroot $WORKDIR_BASE/root /bin/bash -c 'echo -e "KEYMAP=$KEYMAP\nFONT=eurlatgr"| tee /etc/vconsole.conf'
+arch-chroot $WORKDIR_BASE/root /bin/bash -c "echo -e \"KEYMAP=${KEYMAP}\nFONT=eurlatgr\"| tee /etc/vconsole.conf"
 
 echo "Setting timezone..."
 # Set the timezone within the chroot environment
@@ -66,11 +65,11 @@ echo "Installing packages..."
 arch-chroot $WORKDIR_BASE/root pacman -S --noconfirm $PACKAGES
 
 echo "Installing linux-${$RPI_MODEL} kernel and eeprom..."
-arch-chroot $WORKDIR_BASE/root pacman -S --noconfirm rpi$RPI_MODEL-eeprom
+arch-chroot $WORKDIR_BASE/root pacman -S --noconfirm rpi${RPI_MODEL}-eeprom
 
 echo "Setup hostname..."
 # Set the hostname
-echo "$RPI_HOSTNAME" > $WORKDIR_BASE/root/etc/hostname
+arch-chroot $WORKDIR_BASE/root /bin/bash -c "echo \"$RPI_HOSTNAME\" | tee /etc/hostname"
 arch-chroot $WORKDIR_BASE/root hostnamectl set-hostname "$RPI_HOSTNAME"
 
 echo "Setup network..."
@@ -110,7 +109,7 @@ arch-chroot $WORKDIR_BASE/root systemctl enable systemd-networkd systemd-resolve
 echo "Add ssh key and setup ssh..."
 # Create SSH folder and add key if it does not exist
 arch-chroot $WORKDIR_BASE/root mkdir -p /root/.ssh
-arch-chroot $WORKDIR_BASE/root /bin/bash -c 'echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKMidTQ6KGfZtonNKd1HtNPPDiPtzEmlg5yOduvmZzTA valerius laptop" | tee /root/.ssh/authorized_keys'
+arch-chroot $WORKDIR_BASE/root /bin/bash -c "echo \"$SSH_PUB_KEY\" | tee /root/.ssh/authorized_keys"
 arch-chroot $WORKDIR_BASE/root chmod 700 /root/.ssh
 arch-chroot $WORKDIR_BASE/root chmod 600 /root/.ssh/authorized_keys
 
@@ -121,11 +120,6 @@ arch-chroot $WORKDIR_BASE/root sed -i 's/#PermitRootLogin prohibit-password/Perm
 echo "Update fstab..."
 # Update /etc/fstab file
 arch-chroot $WORKDIR_BASE/root /bin/bash -c 'echo "LABEL=PI-BOOT  /boot   vfat    defaults        0       0" | tee /etc/fstab'
-
-echo "Sync and unmount..."
-# sync and unmount
-sync
-umount "${WORKDIR_BASE}/root/*"
 
 # show the end message
 echo "Installation is complete. Insert the SD card into your Raspberry Pi and power it on."
