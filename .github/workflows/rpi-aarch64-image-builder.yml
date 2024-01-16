@@ -44,11 +44,11 @@ jobs:
     #     sudo apt update
     #     sudo apt-get install -y arch-install-scripts qemu-user-static binfmt-support dosfstools wget libarchive-tools sudo
 
-    # - name: Create Work Folder and apply permissions
-    #   run: |
-    #     sudo mkdir -p $WORKDIR_BASE
-    #     sudo chown -R $USER:$USER $WORKDIR_BASE
-    #     echo "Created $WORKDIR_BASE and applied permissions"
+    - name: Create Work Folder and apply permissions
+      run: |
+        sudo mkdir -p $WORKDIR_BASE
+        sudo chown -R $USER:$USER $WORKDIR_BASE
+        echo "Created $WORKDIR_BASE and applied permissions"
 
     - name: Create Image File
       run: |
