@@ -35,7 +35,7 @@ archlinuxarm_md5="http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${ARM_VERSION}-
 user_agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
 LOOP_DEVICE="${1}"
-RPI_MODEL=$2
+RPI_MODEL="$2"
 ARM_VERSION="${3}"
 WORKDIR_BASE="${4}"
 RPI_HOSTNAME="${5}"
@@ -79,10 +79,10 @@ mount ${LOOP_DEVICE}p1 "${WORKDIR_BASE}/root/boot"
 
 # Download and extract root filesystem
 echo "Downloading images..."
-if [ ! -f "$WORKDIR_BASE/ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz" ] || [ ! -f "$WORKDIR_BASE/ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz.md5" ]; then
+if [ ! -f "$WORKDIR_BASE/ArchLinuxARM-rpi-$ARM_VERSION-latest.tar.gz" ] || [ ! -f "$WORKDIR_BASE/ArchLinuxARM-rpi-$ARM_VERSION-latest.tar.gz.md5" ]; then
   # Download the image and the MD5 checksum file
-  wget -U "$user_agent" "${archlinuxarm}" -O "$WORKDIR_BASE/ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz"
-  wget -U "$user_agent" "${archlinuxarm_md5}" -O "$WORKDIR_BASE/ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz.md5"
+  wget -U "$user_agent" "${archlinuxarm}" -O "$WORKDIR_BASE/ArchLinuxARM-rpi-$ARM_VERSION-latest.tar.gz"
+  wget -U "$user_agent" "${archlinuxarm_md5}" -O "$WORKDIR_BASE/ArchLinuxARM-rpi-$ARM_VERSION-latest.tar.gz.md5"
 fi
 
 # Verify MD5 checksum
