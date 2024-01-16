@@ -11,8 +11,8 @@ jobs:
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
       RPI_MODEL: 5
       ARM_VERSION: aarch64
-      ARCH_AARCH_IMG_URL: http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz
-      ARCH_AARCH_IMG_URL_MD5: http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz.md5
+      ARCH_AARCH64_IMG_URL: http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz
+      ARCH_AARCH64_IMG_URL_MD5: http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${ARM_VERSION}-latest.tar.gz.md5
 
     runs-on: self-hosted
     environment: main
