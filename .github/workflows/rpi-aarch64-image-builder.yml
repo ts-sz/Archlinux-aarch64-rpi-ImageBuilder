@@ -110,11 +110,15 @@ jobs:
 
     - name: Run Build Script
       run: |
-        sudo chmod +x ./display_variables.sh
-        sudo ./display_variables.sh
-      env:
-        PACKAGES: lolo lolo lolo sdf sdf 
-
+        sudo chmod +x ./build-archlinux-rpi-aarch64-img.sh
+        sudo ./build-archlinux-rpi-aarch64-img.sh \
+          "$WORKDIR_BASE" \
+          "$DEFAULT_LOCALE" \
+          "$KEYMAP" \
+          "$TIMEZONE" \
+          "$PACKAGES" \
+          "$RPI_MODEL" \
+          "$RPI_HOSTNAME"
 
     # - name: Upload Image and Get URL
     #   if: success()

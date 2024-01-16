@@ -19,8 +19,15 @@ IF9fLyAKX19fXy8gXF9ffCBffCAgIFxfXyxffCBcX198IFxfX198IFxfXywgfCBffCBcX19ffCAg
 IF9fX3wgXF9fXy8gIF98ICBffCBcX19ffCAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
 ICAgIHxfX18vICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAK" | base64 -d
 
+WORKDIR_BASE="$1"
+DEFAULT_LOCALE="$2"
+KEYMAP="$3"
+TIMEZONE="$4"
+PACKAGES="$5"
+RPI_MODEL="$6"
+RPI_HOSTNAME="$7"
 
-echo "hello - $WORKDIR_BASE!!"
+echo "all variabels are $@"
 exit 0
 echo "Setting locale and keymap..."
 # Add locales to /etc/locale.gen within the chroot environment
