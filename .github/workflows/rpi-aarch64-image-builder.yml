@@ -25,30 +25,30 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    # - name: Generate Dynamic Variables
-    #   run: |
-    #     echo "RPI_HOSTNAME=sz-arch-${{ env.ARM_VERSION }}-rpi${{ env.RPI_MODEL }}" >> $GITHUB_ENV
-    #     echo "WORKDIR_BASE=${{ github.workspace }}/run-${{ github.run_id }}" >> $GITHUB_ENV
-    #     echo "LOOP_IMAGE_PATH=${{ github.workspace }}/run-${{ github.run_id }}/sz-arch-${{ env.ARM_VERSION }}-rpi${{ env.RPI_MODEL }}.img" >> $GITHUB_ENV
-    #     echo "DISTRO=$(cat /etc/*-release | grep ^ID= | cut -d'=' -f2)" >> $GITHUB_ENV
-    #     echo "ARCH_AARCH64_IMG_URL=http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz" >> $GITHUB_ENV
-    #     echo "ARCH_AARCH64_IMG_URL_MD5=http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz.md5" >> $GITHUB_ENV
+    - name: Generate Dynamic Variables
+      run: |
+        echo "RPI_HOSTNAME=sz-arch-${{ env.ARM_VERSION }}-rpi${{ env.RPI_MODEL }}" >> $GITHUB_ENV
+        echo "WORKDIR_BASE=${{ github.workspace }}/run-${{ github.run_id }}" >> $GITHUB_ENV
+        echo "LOOP_IMAGE_PATH=${{ github.workspace }}/run-${{ github.run_id }}/sz-arch-${{ env.ARM_VERSION }}-rpi${{ env.RPI_MODEL }}.img" >> $GITHUB_ENV
+        echo "DISTRO=$(cat /etc/*-release | grep ^ID= | cut -d'=' -f2)" >> $GITHUB_ENV
+        echo "ARCH_AARCH64_IMG_URL=http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz" >> $GITHUB_ENV
+        echo "ARCH_AARCH64_IMG_URL_MD5=http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz.md5" >> $GITHUB_ENV
 
-    # - name: Display All Environment Variables
-    #   run: |
-    #     printenv
+    - name: Display All Environment Variables
+      run: |
+        printenv
 
-    # - name: Update system and install dependencies for Arch Linux
-    #   if: env.INSTALL_REQUIREMENTS == 'true' && env.DISTRO == 'arch'
-    #   run: |
-    #     sudo pacman -Syu --noconfirm
-    #     sudo pacman -S --noconfirm qemu-user-static-binfmt qemu-user-static dosfstools wget libarchive sudo  arch-install-scripts
+    - name: Update system and install dependencies for Arch Linux
+      if: env.INSTALL_REQUIREMENTS == 'true' && env.DISTRO == 'arch'
+      run: |
+        sudo pacman -Syu --noconfirm
+        sudo pacman -S --noconfirm qemu-user-static-binfmt qemu-user-static dosfstools wget libarchive sudo  arch-install-scripts
     
-    # - name: Update system and install dependencies for Ubuntu
-    #   if: env.INSTALL_REQUIREMENTS == 'true' && env.DISTRO == 'ubuntu'
-    #   run: |
-    #     sudo apt update
-    #     sudo apt-get install -y arch-install-scripts qemu-user-static binfmt-support dosfstools wget libarchive-tools sudo
+    - name: Update system and install dependencies for Ubuntu
+      if: env.INSTALL_REQUIREMENTS == 'true' && env.DISTRO == 'ubuntu'
+      run: |
+        sudo apt update
+        sudo apt-get install -y arch-install-scripts qemu-user-static binfmt-support dosfstools wget libarchive-tools sudo
 
     # - name: Create Work Folder and apply permissions
     #   run: |
