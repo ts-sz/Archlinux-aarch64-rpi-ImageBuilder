@@ -10,7 +10,7 @@ jobs:
       LOOP_IMAGE: archlinux-aarch64-rpi.img
       LOOP_IMAGE_SIZE: 4G
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-      RPI_MODEL: 5
+      RPI_MODEL: 4
       ARM_VERSION: aarch64
       DEFAULT_LOCALE: en_US.UTF-8
       TIMEZONE: Europe/Paris
