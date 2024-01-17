@@ -124,8 +124,9 @@ jobs:
     - name: Upload Image and Get URL
       if: success()
       run: |
-        ISO_URL=$(curl --upload-file $LOOP_IMAGE_PATH https://pub.strat.zone/)
+        ISO_URL=$(curl --silent --show-error --progress-bar --upload-file $LOOP_IMAGE_PATH https://pub.strat.zone/)
         echo "ISO_URL=$ISO_URL" >> $GITHUB_ENV
+        echo "Uploaded $LOOP_IMAGE_PATH to $ISO_URL"
 
     - name: Notify Success
       if: success()
