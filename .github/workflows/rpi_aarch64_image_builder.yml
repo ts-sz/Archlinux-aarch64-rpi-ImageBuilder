@@ -110,8 +110,8 @@ jobs:
 
     - name: Run Build Script
       run: |
-        sudo chmod +x ./build-archlinux-rpi-aarch64-img.sh
-        sudo ./build-archlinux-rpi-aarch64-img.sh \
+        sudo chmod +x ./build_archlinux_rpi_aarch64_img.sh
+        sudo ./build_archlinux_rpi_aarch64_img.sh \
           "$WORKDIR_BASE" \
           "$DEFAULT_LOCALE" \
           "$KEYMAP" \
@@ -148,11 +148,11 @@ jobs:
         echo "Unmounted $WORKDIR_BASE"
         sync
 
-    - name: Delete Work Folder
-      if: always()
-      run: |
-        sudo rm -rf $WORKDIR_BASE
-        echo "Work folder deleted"
+    # - name: Delete Work Folder
+    #   if: always()
+    #   run: |
+    #     sudo rm -rf $WORKDIR_BASE
+    #     echo "Work folder deleted"
 
     - name: Release Loop Device
       if: always()
