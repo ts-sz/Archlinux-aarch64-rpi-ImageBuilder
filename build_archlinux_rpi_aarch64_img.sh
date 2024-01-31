@@ -80,6 +80,13 @@ arch-chroot $WORKDIR_BASE/root pacman -R --noconfirm linux-aarch64 uboot-raspber
 # install linux-rpi kernel and linux-rpi-headers
 arch-chroot $WORKDIR_BASE/root pacman -S --noconfirm linux-rpi linux-rpi-headers
 
+# if RPI_MODEL is 5 add a new line in /boot/config.txt to disable os_check=0
+echo "Add os_check=0 in /boot/config.txt for Raspberry Pi 5 to disable os check..."
+if [ "$RPI_MODEL" = 5 ] ; then
+  echo "Disable os_check=0 in /boot/config.txt..."
+  arch-chroot $WORKDIR_BASE/root /bin/bash -c 'echo -e "\nos_check=0" | tee -a /boot/config.txt'
+fi
+
 echo "Setup hostname..."
 # Set the hostname
 arch-chroot $WORKDIR_BASE/root /bin/bash -c "echo \"$RPI_HOSTNAME\" | tee /etc/hostname"
