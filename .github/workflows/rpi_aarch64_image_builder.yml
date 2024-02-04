@@ -10,6 +10,7 @@ jobs:
       LOOP_IMAGE: archlinux-aarch64-rpi.img
       LOOP_IMAGE_SIZE: 4G
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+      TRANSFERSH_URL: ${{ secrets.TRANSFERSH_URL }}
       RPI_MODEL: 5
       ARM_VERSION: aarch64
       DEFAULT_LOCALE: en_US.UTF-8
@@ -124,7 +125,7 @@ jobs:
     - name: Upload Image and Get URL
       if: success()
       run: |
-        ISO_URL=$(curl --silent --show-error --progress-bar --upload-file $LOOP_IMAGE_PATH https://pub.strat.zone/)
+        ISO_URL=$(curl --silent --show-error --progress-bar --upload-file $LOOP_IMAGE_PATH $TRANSFERSH_URL)
         echo "ISO_URL=$ISO_URL" >> $GITHUB_ENV
         echo "Uploaded $LOOP_IMAGE_PATH to $ISO_URL"
 
