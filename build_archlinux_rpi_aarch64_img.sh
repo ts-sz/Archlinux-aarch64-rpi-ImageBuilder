@@ -20,7 +20,6 @@ IF9fX3wgXF9fXy8gIF98ICBffCBcX19ffCAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
 ICAgIHxfX18vICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAK" | base64 -d
 
 # variables
-INSTALL_RPI_KERNEL=true
 ROOT_PASSWORD="toortoor!"
 
 WORKDIR_BASE="$1"
@@ -68,24 +67,14 @@ echo "Installing packages..."
 # Install packages
 arch-chroot $WORKDIR_BASE/root pacman -S --noconfirm $PACKAGES
 
-# Install linux-rpiX kernel and eeprom if variable INSTALL_RPI_KERNEL is true
-if [ "$INSTALL_RPI_KERNEL" = true ] ; then
-  echo "Installing linux-${$RPI_MODEL} kernel and eeprom..."
-  arch-chroot $WORKDIR_BASE/root pacman -S --noconfirm rpi${RPI_MODEL}-eeprom
-fi
-
 # Remove linux-aarch64 uboot-raspberrypi
 arch-chroot $WORKDIR_BASE/root pacman -R --noconfirm linux-aarch64 uboot-raspberrypi
 
 # install linux-rpi kernel and linux-rpi-headers
 arch-chroot $WORKDIR_BASE/root pacman -S --noconfirm linux-rpi linux-rpi-headers
 
-# if RPI_MODEL is 5 add a new line in /boot/config.txt to disable os_check=0
-echo "Add os_check=0 in /boot/config.txt for Raspberry Pi 5 to disable os check..."
-if [ "$RPI_MODEL" = 5 ] ; then
-  echo "Disable os_check=0 in /boot/config.txt..."
-  arch-chroot $WORKDIR_BASE/root /bin/bash -c 'echo -e "\nos_check=0" | tee -a /boot/config.txt'
-fi
+# Setup raspberry to don't check the OS
+arch-chroot $WORKDIR_BASE/root /bin/bash -c 'echo -e "\nos_check=0" | tee -a /boot/config.txt'
 
 echo "Setup hostname..."
 # Set the hostname
