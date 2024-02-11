@@ -108,10 +108,10 @@ jobs:
       run: |
         sudo systemctl start systemd-binfmt
 
-    - name: Make the new root folder a mount point
-      run: |
-        sudo mount --bind $WORKDIR_BASE/root $WORKDIR_BASE/root
-        sudo mount --bind $WORKDIR_BASE/root/boot $WORKDIR_BASE/root/boot
+    # - name: Make the new root folder a mount point
+    #   run: |
+    #     sudo mount --bind $WORKDIR_BASE/root $WORKDIR_BASE/root
+    #     sudo mount --bind $WORKDIR_BASE/root/boot $WORKDIR_BASE/root/boot
 
     - name: Run Build Script
       run: |
@@ -179,8 +179,8 @@ jobs:
     - name: Umount Loop Device
       if: always()
       run: |
-        sudo umount -R ${WORKDIR_BASE}/root/boot
-        sudo umount -R ${WORKDIR_BASE}/root
+        sudo umount -R -fl ${WORKDIR_BASE}/root/boot
+        sudo umount -R -fl ${WORKDIR_BASE}/root
         echo "Unmounted $WORKDIR_BASE"
         sync
 
