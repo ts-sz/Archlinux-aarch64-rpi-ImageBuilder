@@ -2,6 +2,9 @@ name: Archlinux aarch64 Raspberry Pi Image Builder
 
 on: [push]
 
+permissions:
+  contents: write
+
 jobs:
   build-image:
     name: Build Archlinux aarch64 Raspberry Pi Image
