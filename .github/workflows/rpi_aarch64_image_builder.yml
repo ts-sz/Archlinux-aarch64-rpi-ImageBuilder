@@ -129,12 +129,37 @@ jobs:
         ISO_URL=$(curl --silent --show-error --progress-bar --upload-file $LOOP_IMAGE_PATH $TRANSFERSH_URL)
         echo "ISO_URL=$ISO_URL" >> $GITHUB_ENV
         echo "Uploaded $LOOP_IMAGE_PATH to $ISO_URL"
+    
+# create a release
+    - name: Create Release
+      if: success()
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref_name }}
+        release_name: Release ${{ github.ref_name }}
+        body: |
+          Release of Archlinux ${{ env.ARM_VERSION }} Raspberry Pi Image for model ${{ env.RPI_MODEL }}.
+
+          **Changelog:**
+          - Custom Archlinux build for Raspberry Pi ${{ env.RPI_MODEL }}
+          - Architecture: ${{ env.ARM_VERSION }}
+          - Locale: ${{ env.DEFAULT_LOCALE }}
+          - Timezone: ${{ env.TIMEZONE }}
+          - Packages included: ${{ env.PACKAGES }}
+
+          The image is available for download: [Download Image]($ISO_URL)
+
+        draft: false
+        prerelease: false
 
     - name: Notify Success
       if: success()
       run: |
         SUCCESS_MESSAGE="🎉 Awesome! The Raspberry Pi image build succeeded 🚀\n\
-        This is a archlinux custom-built image for architecture ${{ env.ARM_VERSION }} for Raspberry Model ${{ env.RPI_MODEL }}\n\
+        Release of Archlinux ${{ env.ARM_VERSION }} Raspberry Pi Image for model ${{ env.RPI_MODEL }}.\n\
         Author: ${{ github.actor }}\nBranch: ${{ github.ref }}\n\
         Commit Message: ${{ github.event.head_commit.message }}\n\
         [View Last Commit](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) 📜\n\
