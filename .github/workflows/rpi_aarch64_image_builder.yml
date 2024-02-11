@@ -146,7 +146,7 @@ jobs:
           - Architecture: `${{ env.ARM_VERSION }}`
           - Locale: `${{ env.DEFAULT_LOCALE }}`
           - Timezone: `${{ env.TIMEZONE }}`
-          - Packages included: ${{ env.PACKAGES.map(p => `\`${p}\``).join(', ')}}
+          - Packages included: ${{ env.PACKAGES }}
 
           The image is available for download: [Download Image]($ISO_URL)
 
