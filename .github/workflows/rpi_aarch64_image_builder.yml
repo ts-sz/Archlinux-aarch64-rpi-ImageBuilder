@@ -8,6 +8,7 @@ jobs:
     env:
       INSTALL_REQUIREMENTS: false
       LOOP_IMAGE_SIZE: 4G
+      IMAGE_NAME_PREFIX: sz-arch
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
       TRANSFERSH_URL: ${{ secrets.TRANSFERSH_URL }}
       RPI_MODEL: 5
@@ -29,7 +30,8 @@ jobs:
       run: |
         echo "RPI_HOSTNAME=sz-arch-${{ env.ARM_VERSION }}-rpi${{ env.RPI_MODEL }}" >> $GITHUB_ENV
         echo "WORKDIR_BASE=${{ github.workspace }}/run-${{ github.run_id }}" >> $GITHUB_ENV
-        echo "LOOP_IMAGE_PATH=${{ github.workspace }}/run-${{ github.run_id }}/sz-arch-${{ env.ARM_VERSION }}-rpi${{ env.RPI_MODEL }}_v$(git rev-parse --short HEAD).img" >> $GITHUB_ENV
+        echo "IMAGE_NAME=${{ env.IMAGE_NAME_PREFIX }}-${{ env.ARM_VERSION }}-rpi${{ env.RPI_MODEL }}_v$(git rev-parse --short HEAD).img" >> $GITHUB_ENV
+        echo "LOOP_IMAGE_PATH=${{ github.workspace }}/run-${{ github.run_id }}/${{ env.IMAGE_NAME_PREFIX }}-${{ env.ARM_VERSION }}-rpi${{ env.RPI_MODEL }}_v$(git rev-parse --short HEAD).img" >> $GITHUB_ENV
         echo "DISTRO=$(cat /etc/*-release | grep ^ID= | cut -d'=' -f2)" >> $GITHUB_ENV
         echo "ARCH_AARCH64_IMG_URL=http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz" >> $GITHUB_ENV
         echo "ARCH_AARCH64_IMG_URL_MD5=http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz.md5" >> $GITHUB_ENV
@@ -131,7 +133,13 @@ jobs:
     - name: Notify Success
       if: success()
       run: |
-        SUCCESS_MESSAGE="🎉 Awesome! The Raspberry Pi image build succeeded 🚀\nAuthor: ${{ github.actor }}\nBranch: ${{ github.ref }}\nCommit Message: ${{ github.event.head_commit.message }}\n[View Last Commit](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) 📜\nThe custom-built Archlinux image for Raspberry Pi Model ${{ env.RPI_MODEL }} with ${{ env.ARM_VERSION }} architecture is now available for download:\n[Download Image]($ISO_URL) 📦\nFilename: archlinux-${{ env.ARM_VERSION }}-rpi-${{ env.RPI_MODEL }}.img"
+        SUCCESS_MESSAGE="🎉 Awesome! The Raspberry Pi image build succeeded 🚀\n\
+        This is a archlinux custom-built image for architecture ${{ env.ARM_VERSION }} for Raspberry Model ${{ env.RPI_MODEL }}\n\
+        Author: ${{ github.actor }}\nBranch: ${{ github.ref }}\n\
+        Commit Message: ${{ github.event.head_commit.message }}\n\
+        [View Last Commit](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) 📜\n\
+        The image is available for download:\n[Download Image]($ISO_URL) 📦\n\
+        Filename: ${{ env.IMAGE_NAME }}\n"
         curl -X POST -H "Content-Type: application/json" -d "{\"content\": \"$SUCCESS_MESSAGE\"}" $DISCORD_WEBHOOK_URL  
 
     - name: Notify Failure
@@ -148,11 +156,11 @@ jobs:
         echo "Unmounted $WORKDIR_BASE"
         sync
 
-    # - name: Delete Work Folder
-    #   if: always()
-    #   run: |
-    #     sudo rm -rf $WORKDIR_BASE
-    #     echo "Work folder deleted"
+    - name: Delete Work Folder
+      if: always()
+      run: |
+        sudo rm -rf $WORKDIR_BASE
+        echo "Work folder deleted"
 
     - name: Release Loop Device
       if: always()
