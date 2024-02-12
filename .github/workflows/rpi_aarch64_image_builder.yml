@@ -38,6 +38,7 @@ jobs:
         echo "DISTRO=$(cat /etc/*-release | grep ^ID= | cut -d'=' -f2)" >> $GITHUB_ENV
         echo "ARCH_AARCH64_IMG_URL=http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz" >> $GITHUB_ENV
         echo "ARCH_AARCH64_IMG_URL_MD5=http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz.md5" >> $GITHUB_ENV
+        echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
     - name: Display All Environment Variables
       run: |
@@ -136,8 +137,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: $(git rev-parse --short HEAD)
-        release_name: Release $(git rev-parse --short HEAD)_$(date +'%Y-%m-%d_%H%M%S')
+        tag_name: ${{ env.SHORT_SHA }}
+        release_name: Release ${{ env.SHORT_SHA }}_$(date +'%Y-%m-%d_%H%M%S')
         body: |
           Release of Archlinux ${{ env.ARM_VERSION }} Raspberry Pi Image for model ${{ env.RPI_MODEL }}.
 
