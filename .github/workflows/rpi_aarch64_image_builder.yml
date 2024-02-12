@@ -136,7 +136,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: $(git rev-parse --short HEAD)_$(date +'%Y-%m-%d_%H%M%S')
+        tag_name: $(git rev-parse --short HEAD)
         release_name: Release $(git rev-parse --short HEAD)_$(date +'%Y-%m-%d_%H%M%S')
         body: |
           Release of Archlinux ${{ env.ARM_VERSION }} Raspberry Pi Image for model ${{ env.RPI_MODEL }}.
