@@ -138,7 +138,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ env.SHORT_SHA }}
-        release_name: Release ${{ env.SHORT_SHA }}_$(date +'%Y-%m-%d_%H%M%S')
+        release_name: Release ${{ env.SHORT_SHA }}
         body: |
           Release of Archlinux ${{ env.ARM_VERSION }} Raspberry Pi Image for model ${{ env.RPI_MODEL }}.
 
@@ -149,7 +149,7 @@ jobs:
           - Timezone: `${{ env.TIMEZONE }}`
           - Packages included: ${{ env.PACKAGES }}
 
-          The image is available for download: [Download Image]($ISO_URL)
+          The image is available for download: [Download Image](${{ ISO_URL }})
 
         draft: false
         prerelease: false
