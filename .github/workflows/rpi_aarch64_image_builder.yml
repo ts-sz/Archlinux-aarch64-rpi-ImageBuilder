@@ -149,7 +149,7 @@ jobs:
           - Timezone: `${{ env.TIMEZONE }}`
           - Packages included: ${{ env.PACKAGES }}
 
-          The image is available for download: [Download Image](${{ ISO_URL }})
+          The image is available for download: [Download Image](${{ env.ISO_URL }})
 
         draft: false
         prerelease: false
