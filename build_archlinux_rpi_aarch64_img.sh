@@ -22,7 +22,7 @@ ICAgIHxfX18vICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAK" | base64 -d
 source ./build_config.env
 
 printenv
-echo "$WORKDIR_BASE"
+echo "here is the workdir - $WORKDIR_BASE"
 
 echo "Setting locale and keymap..."
 # Add locales to /etc/locale.gen within the chroot environment

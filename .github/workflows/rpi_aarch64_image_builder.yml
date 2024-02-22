@@ -34,7 +34,7 @@ jobs:
         echo "RPI_HOSTNAME=sz-$(git rev-parse --short HEAD)-rpi${{ env.RPI_MODEL }}" >> $GITHUB_ENV
         echo "WORKDIR_BASE=${{ github.workspace }}/run-${{ github.run_id }}" >> $GITHUB_ENV
         echo "IMAGE_NAME=${{ env.IMAGE_NAME_PREFIX }}-${{ env.ARM_VERSION }}-rpi${{ env.RPI_MODEL }}_v$(git rev-parse --short HEAD).img" >> $GITHUB_ENV
-        echo "LOOP_IMAGE_PATH=${{ github.workspace }}/run-${{ github.run_id }}/${{ env.IMAGE_NAME_PREFIX }}-${{ env.ARM_VERSION }}-rpi${{ env.RPI_MODEL }}_v$(git rev-parse --short HEAD).img" >> $GITHUB_ENV
+        echo "LOOP_IMAGE_PATH=${{ github.workspace }}/run-${{ github.run_id }}/${{ env.IMAGE_NAME_PREFIX }}-${{ env.ARM_VERSION }}-rpi${{ env.RPI_MODEL }}-v$(git rev-parse --short HEAD).img" >> $GITHUB_ENV
         echo "DISTRO=$(cat /etc/*-release | grep ^ID= | cut -d'=' -f2)" >> $GITHUB_ENV
         echo "ARCH_AARCH64_IMG_URL=http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz" >> $GITHUB_ENV
         echo "ARCH_AARCH64_IMG_URL_MD5=http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz.md5" >> $GITHUB_ENV
@@ -121,7 +121,17 @@ jobs:
         ISO_URL=$(curl --silent --show-error --progress-bar --upload-file $LOOP_IMAGE_PATH $TRANSFERSH_URL)
         echo "ISO_URL=$ISO_URL" >> $GITHUB_ENV
         echo "Uploaded $LOOP_IMAGE_PATH to $ISO_URL"
+
+    - name: Save Root Password to File
+      run: |
+        echo "$ROOT_PASSWORD" > root_password.txt
     
+    - name: Upload Root Password as Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: root-password
+        path: root_password.txt
+
 # create a release
     - name: Create Release
       if: success()
