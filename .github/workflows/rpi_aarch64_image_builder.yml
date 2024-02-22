@@ -41,11 +41,6 @@ jobs:
         echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
         echo "ROOT_PASSWORD=$(pwgen -s 17 1)" >> $GITHUB_ENV
 
-    - name: Display All Environment Variables
-      run: |
-        #!/bin/bash
-        printenv
-
     - name: Update system and install dependencies for Arch Linux
       if: env.INSTALL_REQUIREMENTS == 'true' && env.DISTRO == 'arch'
       run: |
@@ -114,7 +109,7 @@ jobs:
     - name: Run Build Script
       run: |
         sudo chmod +x ./build_archlinux_rpi_aarch64_img.sh
-        sudo ./build_archlinux_rpi_aarch64_img.sh
+        sudo --preserve-env ./build_archlinux_rpi_aarch64_img.sh
 
     - name: Upload Image and Get URL
       if: success()
@@ -164,7 +159,7 @@ jobs:
         SUCCESS_MESSAGE="🎉 Awesome! The Raspberry Pi image build succeeded 🚀\n\
         Release of Archlinux ${{ env.ARM_VERSION }} Raspberry Pi Image for model ${{ env.RPI_MODEL }}.\n\
         Author: ${{ github.actor }}\nBranch: ${{ github.ref }}\n\
-        Temporary Root Password: ${{ env.ROOT_PASSWORD }}\n\
+        🗝 Root Password is available as an artifact.\n\
         Commit Message: ${{ github.event.head_commit.message }}\n\
         [View Last Commit](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) 📜\n\
         The image is available for download:\n[Download Image]($ISO_URL) 📦\n\
