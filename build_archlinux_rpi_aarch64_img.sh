@@ -19,17 +19,7 @@ IF9fLyAKX19fXy8gXF9ffCBffCAgIFxfXyxffCBcX198IFxfX198IFxfXywgfCBffCBcX19ffCAg
 IF9fX3wgXF9fXy8gIF98ICBffCBcX19ffCAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
 ICAgIHxfX18vICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAK" | base64 -d
 
-# variables
-ROOT_PASSWORD="toortoor!"
-
-WORKDIR_BASE="$1"
-DEFAULT_LOCALE="$2"
-KEYMAP="$3"
-TIMEZONE="$4"
-PACKAGES="$5"
-RPI_MODEL="$6"
-RPI_HOSTNAME="$7"
-SSH_PUB_KEY="$8"
+source ./build_config.env
 
 echo "Setting locale and keymap..."
 # Add locales to /etc/locale.gen within the chroot environment
