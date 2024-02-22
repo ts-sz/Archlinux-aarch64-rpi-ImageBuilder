@@ -21,6 +21,9 @@ ICAgIHxfX18vICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAK" | base64 -d
 
 source ./build_config.env
 
+printenv
+echo "$WORKDIR_BASE"
+
 echo "Setting locale and keymap..."
 # Add locales to /etc/locale.gen within the chroot environment
 arch-chroot $WORKDIR_BASE/root sed -i -e '/^#en_US.UTF-8 UTF-8/s/^#//' \
