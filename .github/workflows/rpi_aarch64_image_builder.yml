@@ -31,7 +31,7 @@ jobs:
 
     - name: Generate Dynamic Variables
       run: |
-        echo "RPI_HOSTNAME=sz-arch-${{ env.ARM_VERSION }}-rpi${{ env.RPI_MODEL }}" >> $GITHUB_ENV
+        echo "RPI_HOSTNAME=sz-$(git rev-parse --short HEAD)-rpi${{ env.RPI_MODEL }}" >> $GITHUB_ENV
         echo "WORKDIR_BASE=${{ github.workspace }}/run-${{ github.run_id }}" >> $GITHUB_ENV
         echo "IMAGE_NAME=${{ env.IMAGE_NAME_PREFIX }}-${{ env.ARM_VERSION }}-rpi${{ env.RPI_MODEL }}_v$(git rev-parse --short HEAD).img" >> $GITHUB_ENV
         echo "LOOP_IMAGE_PATH=${{ github.workspace }}/run-${{ github.run_id }}/${{ env.IMAGE_NAME_PREFIX }}-${{ env.ARM_VERSION }}-rpi${{ env.RPI_MODEL }}_v$(git rev-parse --short HEAD).img" >> $GITHUB_ENV
@@ -39,6 +39,7 @@ jobs:
         echo "ARCH_AARCH64_IMG_URL=http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz" >> $GITHUB_ENV
         echo "ARCH_AARCH64_IMG_URL_MD5=http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz.md5" >> $GITHUB_ENV
         echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+        echo "ROOT_PASSWORD=$(pwgen -s 17 1)" >> $GITHUB_ENV
 
     - name: Display All Environment Variables
       run: |
@@ -48,7 +49,7 @@ jobs:
       if: env.INSTALL_REQUIREMENTS == 'true' && env.DISTRO == 'arch'
       run: |
         sudo pacman -Syu --noconfirm
-        sudo pacman -S --noconfirm qemu-user-static-binfmt qemu-user-static dosfstools wget libarchive sudo  arch-install-scripts
+        sudo pacman -S --noconfirm qemu-user-static-binfmt qemu-user-static dosfstools wget libarchive sudo arch-install-scripts pwgen
     
     - name: Update system and install dependencies for Ubuntu
       if: env.INSTALL_REQUIREMENTS == 'true' && env.DISTRO == 'ubuntu'
@@ -112,15 +113,7 @@ jobs:
     - name: Run Build Script
       run: |
         sudo chmod +x ./build_archlinux_rpi_aarch64_img.sh
-        sudo ./build_archlinux_rpi_aarch64_img.sh \
-          "$WORKDIR_BASE" \
-          "$DEFAULT_LOCALE" \
-          "$KEYMAP" \
-          "$TIMEZONE" \
-          "$PACKAGES" \
-          "$RPI_MODEL" \
-          "$RPI_HOSTNAME" \
-          "$SSH_PUB_KEY"
+        sudo ./build_archlinux_rpi_aarch64_img.sh
 
     - name: Upload Image and Get URL
       if: success()
@@ -160,6 +153,7 @@ jobs:
         SUCCESS_MESSAGE="🎉 Awesome! The Raspberry Pi image build succeeded 🚀\n\
         Release of Archlinux ${{ env.ARM_VERSION }} Raspberry Pi Image for model ${{ env.RPI_MODEL }}.\n\
         Author: ${{ github.actor }}\nBranch: ${{ github.ref }}\n\
+        Temporary Root Password: ${{ env.ROOT_PASSWORD }}\n\
         Commit Message: ${{ github.event.head_commit.message }}\n\
         [View Last Commit](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) 📜\n\
         The image is available for download:\n[Download Image]($ISO_URL) 📦\n\
