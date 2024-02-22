@@ -43,6 +43,7 @@ jobs:
 
     - name: Display All Environment Variables
       run: |
+        #!/bin/bash
         printenv
 
     - name: Update system and install dependencies for Arch Linux
