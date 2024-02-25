@@ -19,7 +19,7 @@ jobs:
       # DEFAULT_LOCALE: en_US.UTF-8
       # TIMEZONE: Europe/Paris
       # KEYMAP: us-acentos
-      # SSH_PUB_KEY: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKMidTQ6KGfZtonNKd1HtNPPDiPtzEmlg5yOduvmZzTA valerius laptop
+      SSH_PUB_KEY: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKMidTQ6KGfZtonNKd1HtNPPDiPtzEmlg5yOduvmZzTA valerius laptop
       # PACKAGES: arp-scan base-devel dosfstools git mkinitcpio-utils neovim nftables openssh python qrencode rsync sudo tailscale uboot-tools unzip zerotier-one zsh
     runs-on: self-hosted
     environment: main
@@ -50,6 +50,7 @@ jobs:
         echo "ARCH_AARCH64_IMG_URL_MD5=http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz.md5" >> $GITHUB_ENV
         echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
         echo "ROOT_PASSWORD=$(pwgen -s 17 1)" >> $GITHUB_ENV
+        echo "SSH_PUB_KEY=$SSH_PUB_KEY" >> $GITHUB_ENV
 
     - name: Update system and install dependencies for Arch Linux
       if: env.INSTALL_REQUIREMENTS == 'true' && env.DISTRO == 'arch'
