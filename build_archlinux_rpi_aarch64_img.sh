@@ -10,7 +10,7 @@ notes       :
 =========================
 COMMENTBLOCK
 
-# Banner
+# Display ASCII banner
 echo "ICAgICAgIHwgICAgICAgICAgICAgICAgfCAgICAgICAgICAgICAgICBfKSAgICAgICAgICAgICAg
 ICAgICAgICAgICAgICAgICAgICAKICBfX3wgIF9ffCAgIF9ffCAgX2AgfCAgX198ICAgXyBcICAg
 X2AgfCAgfCAgIF9ffCAgIF8gIC8gICBfIFwgICBfXyBcICAgIF8gXCAKXF9fIFwgIHwgICAgfCAg
@@ -19,68 +19,84 @@ IF9fLyAKX19fXy8gXF9ffCBffCAgIFxfXyxffCBcX198IFxfX198IFxfXywgfCBffCBcX19ffCAg
 IF9fX3wgXF9fXy8gIF98ICBffCBcX19ffCAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
 ICAgIHxfX18vICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAK" | base64 -d
 
+# Source configuration file
 source ./build_config.env
 
+#
+# 1. Locale and Language Configuration
+#
 echo "Setting locale and keymap..."
-# Add locales to /etc/locale.gen within the chroot environment
-arch-chroot $WORKDIR_BASE/root sed -i -e '/^#en_US.UTF-8 UTF-8/s/^#//' \
+# Enable required locales in locale.gen
+sed -i -e '/^#en_US.UTF-8 UTF-8/s/^#//' \
   -e '/^#en_US ISO-8859-1/s/^#//' \
   -e '/^#fr_FR.UTF-8 UTF-8/s/^#//' \
   -e '/^#fr_FR ISO-8859-1/s/^#//' \
-  -e '/^#fr_FR@euro ISO-8859-15/s/^#//' /etc/locale.gen
+  -e '/^#fr_FR@euro ISO-8859-15/s/^#//' $WORKDIR_BASE/root/etc/locale.gen
 
-# Generate and set the default locale within the chroot environment
+# Generate locales (requires chroot)
 arch-chroot $WORKDIR_BASE/root locale-gen
-arch-chroot $WORKDIR_BASE/root /bin/bash -c "echo \"LANG=${DEFAULT_LOCALE}\" | tee /etc/locale.conf"
 
-# Set the system locale within the chroot environment
-arch-chroot $WORKDIR_BASE/root /bin/bash -c "echo \"LANG=${DEFAULT_LOCALE}\" | tee /etc/locale.conf"
+# Set system locale
+echo "LANG=${DEFAULT_LOCALE}" > $WORKDIR_BASE/root/etc/locale.conf
 
-# Add keymap to vconsole.conf within the chroot environment
-arch-chroot $WORKDIR_BASE/root /bin/bash -c "echo -e \"KEYMAP=${KEYMAP}\nFONT=eurlatgr\"| tee /etc/vconsole.conf"
+# Configure keyboard layout and font
+echo -e "KEYMAP=${KEYMAP}\nFONT=eurlatgr" > $WORKDIR_BASE/root/etc/vconsole.conf
 
+#
+# 2. Timezone Configuration
+#
 echo "Setting timezone..."
-# Set the timezone within the chroot environment
-arch-chroot $WORKDIR_BASE/root /bin/bash -c "ln -sf /usr/share/zoneinfo/${TIMEZONE} /etc/localtime"
+ln -sf /usr/share/zoneinfo/${TIMEZONE} $WORKDIR_BASE/root/etc/localtime
 
+#
+# 3. Package Management
+#
 echo "Initializing pacman keyring..."
-# Initialize pacman keyring
+# Initialize and populate pacman keyring (requires chroot)
 arch-chroot $WORKDIR_BASE/root pacman-key --init
 arch-chroot $WORKDIR_BASE/root pacman-key --populate archlinuxarm
 
 echo "Updating pacman database and packages..."
-# Update pacman database and packages
+# Update system packages (requires chroot)
 arch-chroot $WORKDIR_BASE/root pacman -Syu --noconfirm archlinux-keyring
-# arch-chroot $WORKDIR_BASE/root pacman-key --refresh-keys
 
 echo "Installing packages..."
-# Install packages
+# Install specified packages (requires chroot)
 arch-chroot $WORKDIR_BASE/root pacman -S --noconfirm $PACKAGES
 
-# Remove linux-aarch64 uboot-raspberrypi
+# Remove default kernel packages
 arch-chroot $WORKDIR_BASE/root pacman -R --noconfirm linux-aarch64 uboot-raspberrypi
 
-# install linux-rpi kernel and linux-rpi-headers
+# Install Raspberry Pi specific kernel
 arch-chroot $WORKDIR_BASE/root pacman -S --noconfirm linux-rpi linux-rpi-headers
 
-# Setup raspberry to don't check the OS
-arch-chroot $WORKDIR_BASE/root /bin/bash -c 'echo -e "\nos_check=0" | tee -a /boot/config.txt'
+#
+# 4. Raspberry Pi Configuration
+#
+# Disable OS check in config.txt
+echo -e "\nos_check=0" >> $WORKDIR_BASE/root/boot/config.txt
 
+#
+# 5. System Configuration
+#
 echo "Setup hostname..."
-# Set the hostname
-arch-chroot $WORKDIR_BASE/root /bin/bash -c "echo \"$RPI_HOSTNAME\" | tee /etc/hostname"
+# Set system hostname
+echo "$RPI_HOSTNAME" > $WORKDIR_BASE/root/etc/hostname
 arch-chroot $WORKDIR_BASE/root hostnamectl set-hostname "$RPI_HOSTNAME"
 
 echo "Setting a new root password..."
-# Change the root password
+# Set root password (requires chroot)
 arch-chroot $WORKDIR_BASE/root /bin/bash -c "echo root:$ROOT_PASSWORD | chpasswd"
 
+#
+# 6. Network Configuration
+#
 echo "Setup network..."
-# delete all network files in /etc/systemd/network
-arch-chroot $WORKDIR_BASE/root rm -rf /etc/systemd/network/*
+# Clean existing network configurations
+rm -rf $WORKDIR_BASE/root/etc/systemd/network/*
 
-# add a network config for network interface in /etc/systemd/network/20-wired.network
-arch-chroot $WORKDIR_BASE/root /bin/bash -c 'echo "[Match]
+# Configure wired network
+echo "[Match]
 Type=ether
 
 [Network]
@@ -91,10 +107,10 @@ DNSSEC=no
 RouteMetric=100
 
 [IPv6AcceptRA]
-RouteMetric=100" | tee /etc/systemd/network/20-wired.network'
+RouteMetric=100" > $WORKDIR_BASE/root/etc/systemd/network/20-wired.network
 
-# add a network config for network interface in /etc/systemd/network/20-wireless.network
-arch-chroot $WORKDIR_BASE/root /bin/bash -c 'echo "[Match]
+# Configure wireless network
+echo "[Match]
 Type=wlan
 
 [Network]
@@ -104,25 +120,33 @@ DNSSEC=no
 RouteMetric=600
 
 [IPv6AcceptRA]
-RouteMetric=600" | tee /etc/systemd/network/20-wireless.network'
+RouteMetric=600" > $WORKDIR_BASE/root/etc/systemd/network/20-wireless.network
 
-# enable systemd-networkd and systemd-resolved
+# Enable network services (requires chroot)
 arch-chroot $WORKDIR_BASE/root systemctl enable systemd-networkd systemd-resolved
 
+#
+# 7. SSH Configuration
+#
 echo "Add ssh key and setup ssh..."
-# Create SSH folder and add key if it does not exist
-arch-chroot $WORKDIR_BASE/root mkdir -p /root/.ssh
-arch-chroot $WORKDIR_BASE/root /bin/bash -c "echo \"$SSH_PUB_KEY\" | tee /root/.ssh/authorized_keys"
-arch-chroot $WORKDIR_BASE/root chmod 700 /root/.ssh
-arch-chroot $WORKDIR_BASE/root chmod 600 /root/.ssh/authorized_keys
+# Setup SSH directory and authorized keys
+mkdir -p $WORKDIR_BASE/root/root/.ssh
+echo "$SSH_PUB_KEY" > $WORKDIR_BASE/root/root/.ssh/authorized_keys
+chmod 700 $WORKDIR_BASE/root/root/.ssh
+chmod 600 $WORKDIR_BASE/root/root/.ssh/authorized_keys
 
-# Change SSH port and disable root password authentication
-arch-chroot $WORKDIR_BASE/root sed -i 's/#Port 22/Port 34522/g' /etc/ssh/sshd_config
-arch-chroot $WORKDIR_BASE/root sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin without-password/g' /etc/ssh/sshd_config
+# Configure SSH server
+echo "Port 34522" > $WORKDIR_BASE/root/etc/ssh/sshd_config.d/sz-config.conf
+echo "PermitRootLogin prohibit-password" >> $WORKDIR_BASE/root/etc/ssh/sshd_config.d/sz-config.conf
 
+#
+# 8. Storage Configuration
+#
 echo "Update fstab..."
-# Update /etc/fstab file
-arch-chroot $WORKDIR_BASE/root /bin/bash -c 'echo "LABEL=PI-BOOT  /boot   vfat    defaults        0       0" | tee /etc/fstab'
+# Configure boot partition in fstab
+echo "LABEL=PI-BOOT  /boot   vfat    defaults        0       0" > $WORKDIR_BASE/root/etc/fstab
 
-# show the end message
+#
+# 9. Completion
+#
 echo "Installation is complete. Insert the SD card into your Raspberry Pi and power it on."
