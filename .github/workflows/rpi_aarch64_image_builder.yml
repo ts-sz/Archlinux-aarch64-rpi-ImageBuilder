@@ -9,7 +9,7 @@ jobs:
   build-image:
     name: Build Archlinux aarch64 Raspberry Pi Image
     env:
-      INSTALL_REQUIREMENTS: false
+      INSTALL_REQUIREMENTS: true
       LOOP_IMAGE_SIZE: 4G
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
       TRANSFERSH_URL: ${{ secrets.TRANSFERSH_URL }}
@@ -21,9 +21,11 @@ jobs:
       # KEYMAP: us-acentos
       SSH_PUB_KEY: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKMidTQ6KGfZtonNKd1HtNPPDiPtzEmlg5yOduvmZzTA valerius laptop
       # PACKAGES: arp-scan base-devel dosfstools git mkinitcpio-utils neovim nftables openssh python qrencode rsync sudo tailscale uboot-tools unzip zerotier-one zsh
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+      options: --privileged
     environment: main
-    # container: archlinux:latest
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
@@ -45,35 +47,28 @@ jobs:
         echo "WORKDIR_BASE=${{ github.workspace }}/run-${{ github.run_id }}" >> $GITHUB_ENV
         echo "IMAGE_NAME=${{ env.IMAGE_NAME_PREFIX }}-${{ env.ARM_VERSION }}-rpi${{ env.RPI_MODEL }}_v$(git rev-parse --short HEAD).img" >> $GITHUB_ENV
         echo "LOOP_IMAGE_PATH=${{ github.workspace }}/run-${{ github.run_id }}/${{ env.IMAGE_NAME_PREFIX }}-${{ env.ARM_VERSION }}-rpi${{ env.RPI_MODEL }}-v$(git rev-parse --short HEAD).img" >> $GITHUB_ENV
-        echo "DISTRO=$(cat /etc/*-release | grep ^ID= | cut -d'=' -f2)" >> $GITHUB_ENV
+        echo "DISTRO=arch" >> $GITHUB_ENV
         echo "ARCH_AARCH64_IMG_URL=http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz" >> $GITHUB_ENV
         echo "ARCH_AARCH64_IMG_URL_MD5=http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz.md5" >> $GITHUB_ENV
         echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-        echo "ROOT_PASSWORD=$(pwgen -s 17 1)" >> $GITHUB_ENV
+        echo "ROOT_PASSWORD=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 17)" >> $GITHUB_ENV
         echo "SSH_PUB_KEY=$SSH_PUB_KEY" >> $GITHUB_ENV
 
-    - name: Update system and install dependencies for Arch Linux
-      if: env.INSTALL_REQUIREMENTS == 'true' && env.DISTRO == 'arch'
+    - name: Update system and install dependencies
       run: |
-        sudo pacman -Syu --noconfirm
-        sudo pacman -S --noconfirm qemu-user-static-binfmt qemu-user-static dosfstools wget libarchive sudo arch-install-scripts pwgen
-    
-    - name: Update system and install dependencies for Ubuntu
-      if: env.INSTALL_REQUIREMENTS == 'true' && env.DISTRO == 'ubuntu'
-      run: |
-        sudo apt update
-        sudo apt-get install -y arch-install-scripts qemu-user-static binfmt-support dosfstools wget libarchive-tools sudo
+        pacman -Syu --noconfirm
+        pacman -S --noconfirm qemu-user-static-binfmt qemu-user-static dosfstools wget libarchive sudo arch-install-scripts parted e2fsprogs btrfs-progs mtools util-linux git
 
     - name: Create Work Folder and apply permissions
       run: |
-        sudo mkdir -p $WORKDIR_BASE
-        sudo chown -R $USER:$USER $WORKDIR_BASE
+        mkdir -p $WORKDIR_BASE
+        chmod -R 755 $WORKDIR_BASE
         echo "Created $WORKDIR_BASE and applied permissions"
 
     - name: Create Image File
       run: |
         fallocate -l $LOOP_IMAGE_SIZE $LOOP_IMAGE_PATH
-    
+
     - name: Download Archlinux aarch64 Image
       run: |
         cd $WORKDIR_BASE
@@ -83,44 +78,53 @@ jobs:
 
     - name: Setup Loop Device
       run: |
-        sudo losetup -fP $LOOP_IMAGE_PATH
-        LOOP_DEVICE=$(sudo losetup -j $LOOP_IMAGE_PATH | cut -d: -f1)
+        losetup -fP $LOOP_IMAGE_PATH
+        LOOP_DEVICE=$(losetup -j $LOOP_IMAGE_PATH | cut -d: -f1)
         echo "Loop device is $LOOP_DEVICE"
         echo "LOOP_DEVICE=$LOOP_DEVICE" >> $GITHUB_ENV
 
     - name: Create Partitions
       run: |
-        sudo parted --script $LOOP_DEVICE mklabel msdos
-        sudo parted --script $LOOP_DEVICE mkpart primary fat32 1MiB 257MiB
-        sudo parted --script $LOOP_DEVICE mkpart primary ext4 257MiB 100%
-        sudo parted --script $LOOP_DEVICE set 1 boot on
-        sudo parted --script $LOOP_DEVICE print
+        parted --script $LOOP_DEVICE mklabel msdos
+        parted --script $LOOP_DEVICE mkpart primary fat32 1MiB 257MiB
+        parted --script $LOOP_DEVICE mkpart primary ext4 257MiB 100%
+        parted --script $LOOP_DEVICE set 1 boot on
+        parted --script $LOOP_DEVICE print
 
     - name: Format Partitions
       run: |
-        sudo mkfs.vfat -F32 ${LOOP_DEVICE}p1 -n PI-BOOT
-        sudo mkfs.ext4 -q -E lazy_itable_init=0,lazy_journal_init=0 -F ${LOOP_DEVICE}p2 -L PI-ROOT
+        mkfs.vfat -F32 ${LOOP_DEVICE}p1 -n PI-BOOT
+        mkfs.ext4 -q -E lazy_itable_init=0,lazy_journal_init=0 -F ${LOOP_DEVICE}p2 -L PI-ROOT
 
     - name: Mount Partitions
       run: |
-        sudo mkdir -p $WORKDIR_BASE/root
-        sudo mount ${LOOP_DEVICE}p2 $WORKDIR_BASE/root
-        sudo mkdir -p $WORKDIR_BASE/root/boot
-        sudo mount ${LOOP_DEVICE}p1 $WORKDIR_BASE/root/boot
+        mkdir -p $WORKDIR_BASE/root
+        mount ${LOOP_DEVICE}p2 $WORKDIR_BASE/root
+        mkdir -p $WORKDIR_BASE/root/boot
+        mount ${LOOP_DEVICE}p1 $WORKDIR_BASE/root/boot
     
     - name: Extract Archlinux aarch64 Image
       run: |
-        sudo bsdtar -xpf $WORKDIR_BASE/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz -C $WORKDIR_BASE/root
-        sudo sync
+        bsdtar -xpf $WORKDIR_BASE/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz -C $WORKDIR_BASE/root
+        sync
 
-    - name: Check if systemd-binfmt is started
+    - name: Enable QEMU for cross-architecture support
       run: |
-        sudo systemctl start systemd-binfmt
+        # Make sure QEMU is available for cross-architecture emulation
+        pacman -S --noconfirm qemu-user-static
+        systemctl start systemd-binfmt || echo "systemd-binfmt not available, continuing anyway"
+        
+        # Alternative way to set up binfmt if systemd is not available
+        if [ ! -f /proc/sys/fs/binfmt_misc/qemu-aarch64 ]; then
+          echo "Setting up binfmt manually"
+          mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc || true
+          echo ':qemu-aarch64:M::\x7fELF\x02\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\xb7\x00:\xff\xff\xff\xff\xff\xff\xff\x00\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff\xff:/usr/bin/qemu-aarch64-static:' > /proc/sys/fs/binfmt_misc/register || true
+        fi
 
     - name: Run Build Script
       run: |
-        sudo chmod +x ./build_archlinux_rpi_aarch64_img.sh
-        sudo --preserve-env ./build_archlinux_rpi_aarch64_img.sh
+        chmod +x ./build_archlinux_rpi_aarch64_img.sh
+        ./build_archlinux_rpi_aarch64_img.sh
 
     - name: Upload Image and Get URL
       if: success()
@@ -128,6 +132,12 @@ jobs:
         ISO_URL=$(curl --silent --show-error --progress-bar --upload-file $LOOP_IMAGE_PATH $TRANSFERSH_URL)
         echo "ISO_URL=$ISO_URL" >> $GITHUB_ENV
         echo "Uploaded $LOOP_IMAGE_PATH to $ISO_URL"
+        
+        # As a backup, also split the image for GitHub artifacts
+        mkdir -p $WORKDIR_BASE/split
+        cd $WORKDIR_BASE
+        split -b 1G $LOOP_IMAGE_PATH "$WORKDIR_BASE/split/raspimage.part"
+        echo "Image has been split for artifact upload"
 
     - name: Save Root Password to File
       run: |
@@ -139,7 +149,13 @@ jobs:
         name: root-password
         path: root_password.txt
 
-# create a release
+    - name: Upload Image Parts as Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: raspberry-pi-image-parts
+        path: ${{ env.WORKDIR_BASE }}/split/
+        retention-days: 1
+
     - name: Create Release
       if: success()
       id: create_release
@@ -186,21 +202,21 @@ jobs:
     - name: Umount Loop Device
       if: always()
       run: |
-        sudo umount -R -fl ${WORKDIR_BASE}/root/boot
-        sudo umount -R -fl ${WORKDIR_BASE}/root
+        umount -R -fl ${WORKDIR_BASE}/root/boot || true
+        umount -R -fl ${WORKDIR_BASE}/root || true
         echo "Unmounted $WORKDIR_BASE"
         sync
-
-    - name: Delete Work Folder
-      if: always()
-      run: |
-        sudo rm -rf $WORKDIR_BASE
-        echo "Work folder deleted"
 
     - name: Release Loop Device
       if: always()
       run: |
         if [ -n "$LOOP_DEVICE" ]; then
-          sudo losetup -d $LOOP_DEVICE
+          losetup -d $LOOP_DEVICE || true
           echo "Loop device $LOOP_DEVICE released"
         fi
+
+    - name: Delete Work Folder
+      if: always()
+      run: |
+        rm -rf $WORKDIR_BASE || true
+        echo "Work folder deleted"
