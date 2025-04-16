@@ -20,6 +20,15 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Load .env variables
+      id: dotenv
+      uses: ./.github/actions/dotenv-action
+
+    - name: Install dependencies
+      run: |
+        pacman -Syu --noconfirm
+        pacman -S --noconfirm qemu-user-static-binfmt qemu-user-static dosfstools wget libarchive arch-install-scripts parted
+
     - name: Create Image File
       run: |
         mkdir -p $(dirname $LOOP_IMAGE_PATH)
