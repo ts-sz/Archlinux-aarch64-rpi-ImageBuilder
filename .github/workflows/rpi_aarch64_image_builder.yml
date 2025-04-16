@@ -20,9 +20,12 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Load .env variables
-      id: dotenv
-      uses: ./.github/actions/dotenv-action
+    - name: Load .env file
+      uses: xom9ikk/dotenv@v2.3.0
+      with:
+        path: .env
+        mode: development
+        load-mode: strict
 
     - name: Install dependencies
       run: |
