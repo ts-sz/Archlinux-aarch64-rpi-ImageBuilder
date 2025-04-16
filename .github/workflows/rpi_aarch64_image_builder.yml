@@ -28,8 +28,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pacman -Syu --noconfirm
-        pacman -S --noconfirm qemu-user-static-binfmt qemu-user-static dosfstools wget libarchive arch-install-scripts parted
+        pacman -Syu --noconfirm qemu-user-static-binfmt qemu-user-static dosfstools wget libarchive arch-install-scripts parted
 
     - name: Create Image File
       run: |
@@ -42,6 +41,8 @@ jobs:
         LOOP_DEVICE=$(losetup -j $LOOP_IMAGE_PATH | cut -d: -f1)
         echo "Loop device is $LOOP_DEVICE"
         echo "LOOP_DEVICE=$LOOP_DEVICE" >> $GITHUB_ENV
+        sleep 1
+        ls ${LOOP_DEVICE}*
 
     - name: Create Partitions
       run: |
