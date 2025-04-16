@@ -49,7 +49,9 @@ jobs:
         parted --script $LOOP_DEVICE mkpart primary ext4 257MiB 100%
         parted --script $LOOP_DEVICE set 1 boot on
         parted --script $LOOP_DEVICE print
-        partx -a $LOOP_DEVICE
+        losetup -d $LOOP_DEVICE
+        losetup -P $LOOP_DEVICE $LOOP_IMAGE_PATH
+        ls ${LOOP_DEVICE}*
         tree /dev/
 
     - name: Format Partitions
