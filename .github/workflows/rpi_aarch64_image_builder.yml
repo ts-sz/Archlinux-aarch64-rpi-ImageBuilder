@@ -8,9 +8,9 @@ jobs:
   build-image:
     name: Build Archlinux aarch64 Raspberry Pi Image
     env:
+      WORKDIR_BASE: ${{ github.workspace }}/run-${{ github.run_id }}
       LOOP_IMAGE_SIZE: 4G
       LOOP_IMAGE_PATH: ${{ github.workspace }}/run-${{ github.run_id }}/rpi_aarch64.img
-      WORKDIR_BASE: ${{ github.workspace }}/run-${{ github.run_id }}
     runs-on: ubuntu-latest
     container:
       image: archlinux:latest
@@ -22,6 +22,7 @@ jobs:
 
     - name: Create Image File
       run: |
+        mkdir -p $(dirname $LOOP_IMAGE_PATH)
         fallocate -l $LOOP_IMAGE_SIZE $LOOP_IMAGE_PATH
     
     - name: Setup Loop Device
