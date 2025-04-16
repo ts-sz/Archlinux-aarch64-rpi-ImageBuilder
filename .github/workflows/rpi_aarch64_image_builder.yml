@@ -28,7 +28,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pacman -Syu --noconfirm qemu-user-static-binfmt qemu-user-static dosfstools wget libarchive arch-install-scripts parted
+        pacman -Syu --noconfirm qemu-user-static-binfmt qemu-user-static dosfstools wget libarchive arch-install-scripts parted kpartx
 
     - name: Create Image File
       run: |
@@ -50,18 +50,17 @@ jobs:
         parted --script $LOOP_DEVICE set 1 boot on
         parted --script $LOOP_DEVICE print
         sleep 1
-        ls ${LOOP_DEVICE}*
-        ls /dev/mapper
-        ls /dev/
+        kpartx -a $LOOP_DEVICE
+        ls -la /dev/mapper/
 
     - name: Format Partitions
       run: |
-        mkfs.vfat -F32 ${LOOP_DEVICE}p1 -n AARCH64-BOOT
-        mkfs.ext4 -q -E lazy_itable_init=0,lazy_journal_init=0 -F ${LOOP_DEVICE}p2 -L AARCH64-ROOT
+        mkfs.vfat -F32 /dev/mapper/${LOOP_DEVICE}p1 -n AARCH64-BOOT
+        mkfs.ext4 -q -E lazy_itable_init=0,lazy_journal_init=0 -F /dev/mapper/${LOOP_DEVICE}p2 -L AARCH64-ROOT
 
     - name: Mount Partitions
       run: |
         mkdir -p $WORKDIR_BASE/root
-        mount ${LOOP_DEVICE}p2 $WORKDIR_BASE/root
+        mount /dev/mapper/${LOOP_DEVICE}p2 $WORKDIR_BASE/root
         mkdir -p $WORKDIR_BASE/root/boot
-        mount ${LOOP_DEVICE}p1 $WORKDIR_BASE/root/boot
+        mount /dev/mapper/${LOOP_DEVICE}p1 $WORKDIR_BASE/root/boot
