@@ -51,6 +51,8 @@ jobs:
         parted --script $LOOP_DEVICE print
         sleep 1
         ls ${LOOP_DEVICE}*
+        ls /dev/mapper
+        ls /dev/
 
     - name: Format Partitions
       run: |
