@@ -22,10 +22,10 @@ jobs:
 
     - name: Load .env file
       uses: xom9ikk/dotenv@v2.3.0
-      with:
-        path: build_config.env
-        # mode: development
-        # load-mode: strict
+      # with:
+      #   path: path_to/
+      #   mode: development
+      #   load-mode: strict
 
     # - name: Export build_config.env to GITHUB_ENV
     #   run: |
