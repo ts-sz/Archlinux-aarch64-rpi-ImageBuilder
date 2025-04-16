@@ -20,18 +20,11 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Load .env file
-      uses: xom9ikk/dotenv@v2.3.0
-      # with:
-      #   path: path_to/
-      #   mode: development
-      #   load-mode: strict
-
-    # - name: Export build_config.env to GITHUB_ENV
-    #   run: |
-    #     while read line; do
-    #       echo "$line" >> $GITHUB_ENV
-    #     done < build_config.env
+    - name: Export build_config.env to GITHUB_ENV
+      run: |
+        while read line; do
+          echo "$line" >> $GITHUB_ENV
+        done < build_config.env
 
     - name: Install dependencies
       run: |
