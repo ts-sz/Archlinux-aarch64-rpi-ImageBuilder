@@ -41,8 +41,6 @@ jobs:
         LOOP_DEVICE=$(losetup -j $LOOP_IMAGE_PATH | cut -d: -f1)
         echo "Loop device is $LOOP_DEVICE"
         echo "LOOP_DEVICE=$LOOP_DEVICE" >> $GITHUB_ENV
-        sleep 1
-        ls ${LOOP_DEVICE}*
 
     - name: Create Partitions
       run: |
@@ -51,6 +49,8 @@ jobs:
         parted --script $LOOP_DEVICE mkpart primary ext4 257MiB 100%
         parted --script $LOOP_DEVICE set 1 boot on
         parted --script $LOOP_DEVICE print
+        sleep 1
+        ls ${LOOP_DEVICE}*
 
     - name: Format Partitions
       run: |
