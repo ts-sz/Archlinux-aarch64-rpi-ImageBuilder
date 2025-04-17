@@ -57,8 +57,8 @@ jobs:
       run: |
         losetup --find --partscan --show $LOOP_IMAGE_PATH
         ls ${LOOP_DEVICE}*
-        mkfs.vfat -F32 /dev/${LOOP_DEVICE}p1 -n AARCH64-BOOT
-        mkfs.ext4 -q -E lazy_itable_init=0,lazy_journal_init=0 -F /dev/${LOOP_DEVICE}p2 -L AARCH64-ROOT
+        mkfs.vfat -F32 ${LOOP_DEVICE}p1 -n AARCH64-BOOT
+        mkfs.ext4 -q -E lazy_itable_init=0,lazy_journal_init=0 -F /${LOOP_DEVICE}p2 -L AARCH64-ROOT
 
     - name: Mount Partitions
       run: |
