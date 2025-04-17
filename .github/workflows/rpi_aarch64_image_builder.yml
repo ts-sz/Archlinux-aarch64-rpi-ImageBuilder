@@ -55,7 +55,12 @@ jobs:
 
     - name: Format Partitions
       run: |
-        losetup --find --partscan --show $LOOP_IMAGE_PATH
+        LOOPDEV=$(losetup --find --partscan --show $LOOP_IMAGE_PATH)
+        lsblk --raw --output "NAME,MAJ:MIN" --noheadings $LOOPDEV | tail -n +2 | while read dev node; do
+          MAJ=$(echo $node | cut -d: -f1)
+          MIN=$(echo $node | cut -d: -f2)
+          [ ! -e "/dev/$dev" ] && mknod "/dev/$dev" b $MAJ $MIN
+        done
         ls ${LOOP_DEVICE}*
         mkfs.vfat -F32 ${LOOP_DEVICE}p1 -n AARCH64-BOOT
         mkfs.ext4 -q -E lazy_itable_init=0,lazy_journal_init=0 -F ${LOOP_DEVICE}p2 -L AARCH64-ROOT
