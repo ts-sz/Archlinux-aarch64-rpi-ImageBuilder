@@ -4,149 +4,150 @@ title       :build-archlinux-rpi-aarch64-img.sh
 description :
 author      :Valeriu Stinca
 email       :ts@strategic.zone
-date        :20230916
-version     :0.1
-notes       :
+date        :20250422
+version     :2
+notes       : Ajout support Ethernet DHCP + IP statique, Wi-Fi iwd auto
 =========================
 COMMENTBLOCK
 
-# Display ASCII banner
-echo "ICAgICAgIHwgICAgICAgICAgICAgICAgfCAgICAgICAgICAgICAgICBfKSAgICAgICAgICAgICAg
+set -e
+source ./build_config.env
+
+ascii_banner() {
+  echo "ICAgICAgIHwgICAgICAgICAgICAgICAgfCAgICAgICAgICAgICAgICBfKSAgICAgICAgICAgICAg
 ICAgICAgICAgICAgICAgICAgICAKICBfX3wgIF9ffCAgIF9ffCAgX2AgfCAgX198ICAgXyBcICAg
 X2AgfCAgfCAgIF9ffCAgIF8gIC8gICBfIFwgICBfXyBcICAgIF8gXCAKXF9fIFwgIHwgICAgfCAg
 ICAoICAgfCAgfCAgICAgX18vICAoICAgfCAgfCAgKCAgICAgICAgLyAgICggICB8ICB8ICAgfCAg
 IF9fLyAKX19fXy8gXF9ffCBffCAgIFxfXyxffCBcX198IFxfX198IFxfXywgfCBffCBcX19ffCAg
 IF9fX3wgXF9fXy8gIF98ICBffCBcX19ffCAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
 ICAgIHxfX18vICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAK" | base64 -d
+}
 
-# Source configuration file
-source ./build_config.env
+configure_locale() {
+  echo "Setting locale and keymap..."
+  sed -i -e '/^#en_US.UTF-8 UTF-8/s/^#//' \
+    -e '/^#en_US ISO-8859-1/s/^#//' \
+    -e '/^#fr_FR.UTF-8 UTF-8/s/^#//' \
+    -e '/^#fr_FR ISO-8859-1/s/^#//' \
+    -e '/^#fr_FR@euro ISO-8859-15/s/^#//' $WORKDIR_BASE/root/etc/locale.gen
 
-#
-# 1. Locale and Language Configuration
-#
-echo "Setting locale and keymap..."
-# Enable required locales in locale.gen
-sed -i -e '/^#en_US.UTF-8 UTF-8/s/^#//' \
-  -e '/^#en_US ISO-8859-1/s/^#//' \
-  -e '/^#fr_FR.UTF-8 UTF-8/s/^#//' \
-  -e '/^#fr_FR ISO-8859-1/s/^#//' \
-  -e '/^#fr_FR@euro ISO-8859-15/s/^#//' $WORKDIR_BASE/root/etc/locale.gen
+  arch-chroot $WORKDIR_BASE/root locale-gen
+  echo "LANG=${DEFAULT_LOCALE}" > $WORKDIR_BASE/root/etc/locale.conf
+  echo -e "KEYMAP=${KEYMAP}\nFONT=eurlatgr" > $WORKDIR_BASE/root/etc/vconsole.conf
+}
 
-# Generate locales (requires chroot)
-arch-chroot $WORKDIR_BASE/root locale-gen
+configure_timezone() {
+  echo "Setting timezone..."
+  ln -sf /usr/share/zoneinfo/${TIMEZONE} $WORKDIR_BASE/root/etc/localtime
+}
 
-# Set system locale
-echo "LANG=${DEFAULT_LOCALE}" > $WORKDIR_BASE/root/etc/locale.conf
+install_packages() {
+  echo "Initializing pacman keyring..."
+  arch-chroot $WORKDIR_BASE/root pacman-key --init
+  arch-chroot $WORKDIR_BASE/root pacman-key --populate archlinuxarm
 
-# Configure keyboard layout and font
-echo -e "KEYMAP=${KEYMAP}\nFONT=eurlatgr" > $WORKDIR_BASE/root/etc/vconsole.conf
+  echo "Updating pacman database and packages..."
+  arch-chroot $WORKDIR_BASE/root pacman -Syu --noconfirm archlinux-keyring
 
-#
-# 2. Timezone Configuration
-#
-echo "Setting timezone..."
-ln -sf /usr/share/zoneinfo/${TIMEZONE} $WORKDIR_BASE/root/etc/localtime
+  echo "Installing packages..."
+  arch-chroot $WORKDIR_BASE/root pacman -S --noconfirm $PACKAGES
 
-#
-# 3. Package Management
-#
-echo "Initializing pacman keyring..."
-# Initialize and populate pacman keyring (requires chroot)
-arch-chroot $WORKDIR_BASE/root pacman-key --init
-arch-chroot $WORKDIR_BASE/root pacman-key --populate archlinuxarm
+  # arch-chroot $WORKDIR_BASE/root pacman -R --noconfirm linux-aarch64 uboot-raspberrypi
+  arch-chroot $WORKDIR_BASE/root pacman -S --noconfirm linux-rpi linux-rpi-headers
+}
 
-echo "Updating pacman database and packages..."
-# Update system packages (requires chroot)
-arch-chroot $WORKDIR_BASE/root pacman -Syu --noconfirm archlinux-keyring
+configure_rpi() {
+  echo "Configuring Raspberry Pi boot options..."
+  echo -e "\nos_check=0" >> $WORKDIR_BASE/root/boot/config.txt
+}
 
-echo "Installing packages..."
-# Install specified packages (requires chroot)
-arch-chroot $WORKDIR_BASE/root pacman -S --noconfirm $PACKAGES
+configure_system() {
+  echo "Setting hostname..."
+  echo "$RPI_HOSTNAME" > $WORKDIR_BASE/root/etc/hostname
+  arch-chroot $WORKDIR_BASE/root hostnamectl set-hostname "$RPI_HOSTNAME"
 
-# Remove default kernel packages
-arch-chroot $WORKDIR_BASE/root pacman -R --noconfirm linux-aarch64 uboot-raspberrypi
+  echo "Setting a new root password..."
+  arch-chroot $WORKDIR_BASE/root /bin/bash -c "echo root:$ROOT_PASSWORD | chpasswd"
+}
 
-# Install Raspberry Pi specific kernel
-arch-chroot $WORKDIR_BASE/root pacman -S --noconfirm linux-rpi linux-rpi-headers
+configure_networking() {
+  echo "Setting up wired and wireless networking..."
+  rm -rf $WORKDIR_BASE/root/etc/systemd/network/*
 
-#
-# 4. Raspberry Pi Configuration
-#
-# Disable OS check in config.txt
-echo -e "\nos_check=0" >> $WORKDIR_BASE/root/boot/config.txt
-
-#
-# 5. System Configuration
-#
-echo "Setup hostname..."
-# Set system hostname
-echo "$RPI_HOSTNAME" > $WORKDIR_BASE/root/etc/hostname
-arch-chroot $WORKDIR_BASE/root hostnamectl set-hostname "$RPI_HOSTNAME"
-
-echo "Setting a new root password..."
-# Set root password (requires chroot)
-arch-chroot $WORKDIR_BASE/root /bin/bash -c "echo root:$ROOT_PASSWORD | chpasswd"
-
-#
-# 6. Network Configuration
-#
-echo "Setup network..."
-# Clean existing network configurations
-rm -rf $WORKDIR_BASE/root/etc/systemd/network/*
-
-# Configure wired network
-echo "[Match]
+  cat <<EOF > $WORKDIR_BASE/root/etc/systemd/network/20-wired.network
+[Match]
 Type=ether
 
 [Network]
 DHCP=yes
 DNSSEC=no
 
+[Address]
+Address=${STATIC_WIRED_IP}
+
 [DHCPv4]
 RouteMetric=100
 
 [IPv6AcceptRA]
-RouteMetric=100" > $WORKDIR_BASE/root/etc/systemd/network/20-wired.network
+RouteMetric=100
+EOF
 
-# Configure wireless network
-echo "[Match]
+  cat <<EOF > $WORKDIR_BASE/root/etc/systemd/network/20-wireless.network
+[Match]
 Type=wlan
 
 [Network]
 DHCP=yes
 DNSSEC=no
+
 [DHCPv4]
 RouteMetric=600
 
 [IPv6AcceptRA]
-RouteMetric=600" > $WORKDIR_BASE/root/etc/systemd/network/20-wireless.network
+RouteMetric=600
+EOF
 
-# Enable network services (requires chroot)
-arch-chroot $WORKDIR_BASE/root systemctl enable systemd-networkd systemd-resolved
+  arch-chroot $WORKDIR_BASE/root systemctl enable systemd-networkd systemd-resolved
+  arch-chroot $WORKDIR_BASE/root systemctl enable iwd
 
-#
-# 7. SSH Configuration
-#
-echo "Add ssh key and setup ssh..."
-# Setup SSH directory and authorized keys
-mkdir -p $WORKDIR_BASE/root/root/.ssh
-echo "$SSH_PUB_KEY" > $WORKDIR_BASE/root/root/.ssh/authorized_keys
-chmod 700 $WORKDIR_BASE/root/root/.ssh
-chmod 600 $WORKDIR_BASE/root/root/.ssh/authorized_keys
+  mkdir -p $WORKDIR_BASE/root/var/lib/iwd
+  cat <<EOF > $WORKDIR_BASE/root/var/lib/iwd/${WIFI_SSID}.psk
+[Security]
+PreSharedKey=${WIFI_PASSWORD}
 
-# Configure SSH server
-echo "Port 34522" > $WORKDIR_BASE/root/etc/ssh/sshd_config.d/sz-config.conf
-echo "PermitRootLogin prohibit-password" >> $WORKDIR_BASE/root/etc/ssh/sshd_config.d/sz-config.conf
+[Settings]
+AutoConnect=true
+EOF
+}
 
-#
-# 8. Storage Configuration
-#
-echo "Update fstab..."
-# Configure boot partition in fstab
-echo "LABEL=PI-BOOT  /boot   vfat    defaults        0       0" > $WORKDIR_BASE/root/etc/fstab
+configure_ssh() {
+  echo "Setting up SSH..."
+  mkdir -p $WORKDIR_BASE/root/root/.ssh
+  echo "$SSH_PUB_KEY" > $WORKDIR_BASE/root/root/.ssh/authorized_keys
+  chmod 700 $WORKDIR_BASE/root/root/.ssh
+  chmod 600 $WORKDIR_BASE/root/root/.ssh/authorized_keys
 
-#
-# 9. Completion
-#
-echo "Installation is complete. Insert the SD card into your Raspberry Pi and power it on."
+  echo "Port 34522" > $WORKDIR_BASE/root/etc/ssh/sshd_config.d/sz-config.conf
+  echo "PermitRootLogin prohibit-password" >> $WORKDIR_BASE/root/etc/ssh/sshd_config.d/sz-config.conf
+}
+
+configure_fstab() {
+  echo "Updating fstab..."
+  echo "LABEL=PI-BOOT  /boot   vfat    defaults        0       0" > $WORKDIR_BASE/root/etc/fstab
+}
+
+final_message() {
+  echo "Installation is complete. Insert the SD card into your Raspberry Pi and power it on."
+}
+
+### MAIN
+ascii_banner
+configure_locale
+configure_timezone
+install_packages
+configure_rpi
+configure_system
+configure_networking
+configure_ssh
+configure_fstab
+final_message
