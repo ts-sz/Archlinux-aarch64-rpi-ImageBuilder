@@ -106,14 +106,21 @@ cleanup() {
 
 ### MAIN
 ascii_banner
-
-install_requirements
-setup_workdir
-download_and_verify
-setup_partitions
-create_and_mount_filesystems
-install_base_system
-run_system_configuration
-# cleanup
-
-exit 0
+# Ask if cleanup or build image
+read -p "Do you want to cleanup or build image? (cleanup/build) " choice
+if [ "$choice" = "cleanup" ]; then
+  cleanup
+  exit 0
+elif [ "$choice" = "build" ]; then
+  install_requirements
+  setup_workdir
+  download_and_verify
+  setup_partitions
+  create_and_mount_filesystems
+  install_base_system
+  run_system_configuration
+  exit 0
+else
+  echo "Invalid choice. Please enter 'cleanup' or 'build'."
+  exit 1
+fi

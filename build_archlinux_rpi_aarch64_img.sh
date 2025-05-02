@@ -49,11 +49,17 @@ install_packages() {
   echo "Updating pacman database and packages..."
   arch-chroot $WORKDIR_BASE/root pacman -Syu --noconfirm archlinux-keyring
 
+  # if RPI_MODEL is 5, install linux-rpi-16k and rpi5-eeprom
+  if [ "$RPI_MODEL" = "5" ]; then
+    echo "Installing linux-rpi-16k and rpi5-eeprom..."
+    arch-chroot $WORKDIR_BASE/root pacman -S --noconfirm linux-rpi-16k rpi5-eeprom
+  elif [ "$RPI_MODEL" = "4" ]; then
+    echo "Installing linux-rpi and rpi4-eeprom..."
+    arch-chroot $WORKDIR_BASE/root pacman -S --noconfirm linux-rpi rpi4-eeprom
+  fi
+
   echo "Installing packages..."
   arch-chroot $WORKDIR_BASE/root pacman -S --noconfirm $PACKAGES
-
-  # arch-chroot $WORKDIR_BASE/root pacman -R --noconfirm linux-aarch64 uboot-raspberrypi
-  arch-chroot $WORKDIR_BASE/root pacman -S --noconfirm linux-rpi linux-rpi-headers
 }
 
 configure_rpi() {
@@ -122,13 +128,18 @@ EOF
 
 configure_ssh() {
   echo "Setting up SSH..."
+  # Set up SSH keys
   mkdir -p $WORKDIR_BASE/root/root/.ssh
   echo "$SSH_PUB_KEY" > $WORKDIR_BASE/root/root/.ssh/authorized_keys
   chmod 700 $WORKDIR_BASE/root/root/.ssh
   chmod 600 $WORKDIR_BASE/root/root/.ssh/authorized_keys
 
-  echo "Port 34522" > $WORKDIR_BASE/root/etc/ssh/sshd_config.d/sz-config.conf
-  echo "PermitRootLogin prohibit-password" >> $WORKDIR_BASE/root/etc/ssh/sshd_config.d/sz-config.conf
+  # Create separate SSH config files
+  mkdir -p $WORKDIR_BASE/root/etc/ssh/sshd_config.d/
+  echo "UseDNS no" > $WORKDIR_BASE/root/etc/ssh/sshd_config.d/10-dns.conf
+  echo "Port 34522" > $WORKDIR_BASE/root/etc/ssh/sshd_config.d/20-port.conf
+  echo "PermitRootLogin prohibit-password" > $WORKDIR_BASE/root/etc/ssh/sshd_config.d/30-root-login.conf
+  echo "AddressFamily any" > $WORKDIR_BASE/root/etc/ssh/sshd_config.d/40-address-family.conf
 }
 
 configure_fstab() {
