@@ -107,11 +107,15 @@ cleanup() {
 ### MAIN
 ascii_banner
 # Ask if cleanup or build image
-read -p "Do you want to cleanup or build image? (cleanup/build) " choice
-if [ "$choice" = "cleanup" ]; then
+echo "Select an option:"
+echo "1. Cleanup"
+echo "2. Build image"
+read -p "Enter your choice (1 or 2): " choice
+
+if [ "$choice" = "1" ]; then
   cleanup
   exit 0
-elif [ "$choice" = "build" ]; then
+elif [ "$choice" = "2" ]; then
   install_requirements
   setup_workdir
   download_and_verify
@@ -121,6 +125,6 @@ elif [ "$choice" = "build" ]; then
   run_system_configuration
   exit 0
 else
-  echo "Invalid choice. Please enter 'cleanup' or 'build'."
+  echo "Invalid choice. Please enter 1 or 2."
   exit 1
 fi

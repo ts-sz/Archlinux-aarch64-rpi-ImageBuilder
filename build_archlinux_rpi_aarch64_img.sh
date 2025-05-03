@@ -49,6 +49,9 @@ install_packages() {
   echo "Updating pacman database and packages..."
   arch-chroot $WORKDIR_BASE/root pacman -Syu --noconfirm archlinux-keyring
 
+  # Remove without confirmation linux-aarch64
+  arch-chroot $WORKDIR_BASE/root pacman -R --noconfirm linux-aarch64 uboot-raspberrypi
+
   # if RPI_MODEL is 5, install linux-rpi-16k and rpi5-eeprom
   if [ "$RPI_MODEL" = "5" ]; then
     echo "Installing linux-rpi-16k and rpi5-eeprom..."
