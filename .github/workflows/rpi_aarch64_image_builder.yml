@@ -2,6 +2,20 @@ name: Build Archlinux aarch64 Raspberry Pi Image
 
 on:
   workflow_dispatch:
+    inputs:
+      rpi_model:
+        description: 'Raspberry Pi Model (4 or 5)'
+        required: true
+        default: '5'
+        type: choice
+        options:
+          - '4'
+          - '5'
+      upload_to_s3:
+        description: 'Upload to S3'
+        required: false
+        default: false
+        type: boolean
   push:
     branches:
       - main
@@ -10,15 +24,13 @@ permissions:
   contents: write
 
 env:
-  RPI_MODEL: 5
   ARM_VERSION: aarch64
   BUILD_DEPS: >
     qemu-user-static-binfmt qemu-user-static
     dosfstools wget libarchive arch-install-scripts
-    parted tree fping pwgen git s3cmd
+    parted tree fping pwgen git s3cmd zstd
   LOOP_IMAGE_SIZE: 4G
   ARCH_AARCH64_MIRROR: http://os.archlinuxarm.org/os
-  IMAGE_NAME_PREFIX: sz-arch
   ARCH_AARCH64_IMG: ArchLinuxARM-rpi-aarch64-latest.tar.gz
   ARCH_AARCH64_IMG_MD5: ArchLinuxARM-rpi-aarch64-latest.tar.gz.md5
   WORKDIR_BASE: ${{ github.workspace }}
@@ -30,20 +42,12 @@ env:
     fr_FR ISO-8859-1
     fr_FR@euro ISO-8859-15
   OS_DEFAULT_LOCALE: en_US.UTF-8
-  OS_TIMEZONE: Europe/Paris
   OS_KEYMAP: us-acentos
   OS_PACKAGES: >
     base base-devel dosfstools git mkinitcpio-utils neovim nftables 
     openssh python qrencode rsync sudo tailscale uboot-tools unzip 
     zerotier-one zsh iwd wireless-regdb linux-firmware crda 
-    raspberrypi-bootloader firmware-raspberrypi
-  DISCORD_WEBHOOK_URL: https://discord.com/api/webhooks/1393752771878191224/qhnENlXY9PtdInJgXy1k0hHrF--0VjObNZ_8CKiEDQA3K4bKPd8AnMapV1-glizSty_J
-  CF_ACCOUNT_ID: 8e461b620abfa99df774cdc9f16c7be0
-  CF_BUCKET_NAME: rpi-aarch64
-  S3_ACCESS_KEY: fcc69d24a30283eaa773ceb9b321985b
-  S3_SECRET_KEY: 20628759b96368cd419af37739675aa919189bf7023647dea717df2fe722a250
-  ZT_NETWORK_ID: ebe7fbd445a4056a
-  UPLOAD_TO_S3: true
+    raspberrypi-bootloader firmware-raspberrypi zstd
 jobs:
   build-image:
     name: Prepare for Image Build
@@ -62,6 +66,7 @@ jobs:
           pacman-key --init
           pacman-key --populate archlinux
           pacman -Syu --noconfirm $BUILD_DEPS
+
       # Generate SHORT_SHA
       - name: Generate SHORT_SHA
         run: |
@@ -102,7 +107,6 @@ jobs:
           chmod -R 755 $WORKDIR_BASE
           echo "Creating directory $(dirname $LOOP_PATH)"
           mkdir -p $LOOP_PATH
-
       
       # Download RPI image
       - name: Download RPI image and Checksum
@@ -236,10 +240,6 @@ jobs:
             echo "Installing linux-rpi and rpi4-eeprom..."
             arch-chroot $WORKDIR_BASE/root /usr/bin/pacman -S --noconfirm --overwrite "/boot/*" linux-rpi rpi4-eeprom
           fi
-          # update System
-          echo "Updating System..."
-          arch-chroot $WORKDIR_BASE/root /usr/bin/pacman -Syu --noconfirm
-
           # install packages
           echo "Installing packages..."
           arch-chroot $WORKDIR_BASE/root /usr/bin/pacman -S --noconfirm $OS_PACKAGES
@@ -344,8 +344,227 @@ jobs:
           echo "Configuring ZeroTier and join network $ZT_NETWORK_ID..."
           arch-chroot $WORKDIR_BASE/root systemctl enable zerotier-one
           arch-chroot $WORKDIR_BASE/root mkdir -p /var/lib/zerotier-one/networks.d
-          touch $WORKDIR_BASE/root/var/lib/zerotier-one/networks.d/$ZT_NETWORK_ID.conf        
-      
+          touch $WORKDIR_BASE/root/var/lib/zerotier-one/networks.d/$ZT_NETWORK_ID.conf
+     
+      # Enable USB Serial Gadget Console (via USB power cable)
+      - name: Configure USB Serial Gadget Console
+        run: |
+          echo "Configuring USB Serial Gadget for console access via USB power cable..."
+          
+          # Step 1: Configure boot config to enable USB OTG
+          echo "# === USB SERIAL GADGET CONFIGURATION ===" >> $WORKDIR_BASE/root/boot/config.txt
+          echo "# Enable USB OTG (On-The-Go) for serial console via USB power cable" >> $WORKDIR_BASE/root/boot/config.txt
+          echo "dtoverlay=dwc2" >> $WORKDIR_BASE/root/boot/config.txt
+          echo "enable_uart=1" >> $WORKDIR_BASE/root/boot/config.txt
+          echo "" >> $WORKDIR_BASE/root/boot/config.txt
+          
+          # Step 2: Add USB gadget modules to kernel command line
+          echo "Adding USB gadget modules to cmdline.txt..."
+          CMDLINE_FILE="$WORKDIR_BASE/root/boot/cmdline.txt"
+          if [ -f "$CMDLINE_FILE" ]; then
+            # Add modules to load at boot (dwc2=USB controller, g_serial=serial gadget)
+            sed -i 's/$/ modules-load=dwc2,g_serial/' "$CMDLINE_FILE"
+            echo "✅ Added dwc2,g_serial modules to cmdline.txt"
+          fi
+          
+          # Step 3: Configure modules to load automatically
+          echo "Configuring modules to load at boot..."
+          mkdir -p $WORKDIR_BASE/root/etc/modules-load.d/
+          cat > $WORKDIR_BASE/root/etc/modules-load.d/usb-gadget.conf << 'EOF'
+          # USB gadget modules for serial console over USB power cable
+          dwc2
+          g_serial
+          EOF
+          
+          # Step 4: Create USB gadget configuration script
+          echo "Creating USB gadget setup script..."
+          mkdir -p $WORKDIR_BASE/root/usr/local/bin/
+          cat > $WORKDIR_BASE/root/usr/local/bin/setup-usb-serial-gadget.sh << 'EOF'
+          #!/bin/bash
+          # USB Serial Gadget Configuration Script
+          # This script configures the Raspberry Pi as a USB serial device
+          
+          GADGET_NAME="rpi_console"
+          GADGET_DIR="/sys/kernel/config/usb_gadget/$GADGET_NAME"
+          
+          echo "Setting up USB Serial Gadget..."
+          
+          # Mount configfs if not already mounted
+          if [ ! -d "/sys/kernel/config" ]; then
+              echo "Mounting configfs..."
+              mount -t configfs none /sys/kernel/config
+          fi
+          
+          # Create gadget directory if it doesn't exist
+          if [ ! -d "$GADGET_DIR" ]; then
+              echo "Creating USB gadget configuration..."
+              mkdir -p "$GADGET_DIR"
+              cd "$GADGET_DIR"
+              
+              # Set USB device identifiers
+              echo 0x1d6b > idVendor    # Linux Foundation vendor ID
+              echo 0x0104 > idProduct   # Multifunction composite gadget
+              echo 0x0100 > bcdDevice   # Device version 1.0.0
+              echo 0x0200 > bcdUSB      # USB 2.0
+              
+              # Set device description strings (English locale)
+              mkdir -p strings/0x409
+              echo "Raspberry Pi Foundation" > strings/0x409/manufacturer
+              echo "RPi Serial Console" > strings/0x409/product
+              
+              # Get Pi serial number for unique device identifier
+              SERIAL=$(cat /proc/cpuinfo | grep Serial | cut -d ' ' -f 2 2>/dev/null || echo "unknown")
+              echo "$SERIAL" > strings/0x409/serialnumber
+              
+              # Create configuration
+              mkdir -p configs/c.1/strings/0x409
+              echo "Serial Console Config" > configs/c.1/strings/0x409/configuration
+              echo 250 > configs/c.1/MaxPower  # 250mA max power consumption
+              
+              # Create ACM (Abstract Control Model) serial function
+              mkdir -p functions/acm.usb0
+              
+              # Link function to configuration
+              ln -s functions/acm.usb0 configs/c.1/
+              
+              # Find and enable USB Device Controller
+              UDC_DEVICE=$(ls /sys/class/udc | head -n1)
+              if [ -n "$UDC_DEVICE" ]; then
+                  echo "$UDC_DEVICE" > UDC
+                  echo "✅ USB Serial Gadget enabled on controller: $UDC_DEVICE"
+                  echo "✅ Serial device available at: /dev/ttyGS0"
+              else
+                  echo "❌ ERROR: No USB Device Controller found"
+                  exit 1
+              fi
+          else
+              echo "ℹ️  USB Serial Gadget already configured"
+          fi
+          
+          echo "USB Serial Gadget setup completed!"
+          EOF
+          
+          chmod +x $WORKDIR_BASE/root/usr/local/bin/setup-usb-serial-gadget.sh
+          
+          # Step 5: Create systemd service to setup gadget at boot
+          echo "Creating systemd service for USB gadget..."
+          cat > $WORKDIR_BASE/root/etc/systemd/system/usb-serial-gadget.service << 'EOF'
+          [Unit]
+          Description=USB Serial Gadget Setup
+          Documentation=https://www.kernel.org/doc/html/latest/usb/gadget_configfs.html
+          After=local-fs.target
+          Before=getty.target
+          
+          [Service]
+          Type=oneshot
+          ExecStart=/usr/local/bin/setup-usb-serial-gadget.sh
+          RemainAfterExit=yes
+          StandardOutput=journal
+          StandardError=journal
+          
+          [Install]
+          WantedBy=multi-user.target
+          EOF
+          
+          # Step 6: Enable services for USB serial console
+          echo "Enabling USB serial console services..."
+          
+          # Enable USB gadget setup service
+          arch-chroot $WORKDIR_BASE/root systemctl enable usb-serial-gadget.service
+          
+          # Enable getty (login prompt) on USB serial device
+          arch-chroot $WORKDIR_BASE/root systemctl enable serial-getty@ttyGS0.service
+          
+          # Step 7: Create user helper script for connection info
+          echo "Creating user information script..."
+          cat > $WORKDIR_BASE/root/usr/local/bin/usb-console-info << 'EOF'
+          #!/bin/bash
+          # USB Serial Console Information Script
+          
+          echo "========================================"
+          echo "  USB SERIAL CONSOLE INFORMATION"
+          echo "========================================"
+          echo ""
+          echo "SETUP:"
+          echo "1. Connect USB-C power cable from Pi to your computer"
+          echo "2. Pi will appear as a USB serial device on your computer"
+          echo "3. Use terminal software to connect"
+          echo ""
+          echo "CONNECTION SETTINGS:"
+          echo "  • Baudrate: 115200"
+          echo "  • Data bits: 8"
+          echo "  • Parity: None"
+          echo "  • Stop bits: 1"
+          echo "  • Flow control: None"
+          echo ""
+          echo "DEVICE NAMES:"
+          echo "  • On Pi: /dev/ttyGS0"
+          echo "  • On Linux/macOS: /dev/ttyACM0 (or /dev/ttyACM1, etc.)"
+          echo "  • On Windows: COMx (check Device Manager)"
+          echo ""
+          echo "CONNECTION EXAMPLES:"
+          echo "  Linux/macOS:"
+          echo "    screen /dev/ttyACM0 115200"
+          echo "    minicom -D /dev/ttyACM0 -b 115200"
+          echo "    picocom -b 115200 /dev/ttyACM0"
+          echo ""
+          echo "  Windows:"
+          echo "    PuTTY: Serial connection, COMx, 115200 baud"
+          echo "    Tera Term: Serial port, COMx, 115200 baud"
+          echo ""
+          echo "SERVICE STATUS:"
+          
+          # Check if USB gadget service is running
+          if systemctl is-active --quiet usb-serial-gadget.service; then
+              echo "  ✅ USB Gadget Service: Active"
+          else
+              echo "  ❌ USB Gadget Service: Inactive"
+          fi
+          
+          # Check if serial getty is running
+          if systemctl is-active --quiet serial-getty@ttyGS0.service; then
+              echo "  ✅ Serial Console Service: Active"
+          else
+              echo "  ❌ Serial Console Service: Inactive"
+          fi
+          
+          # Check if serial device exists
+          if [ -e /dev/ttyGS0 ]; then
+              echo "  ✅ USB Serial Device: /dev/ttyGS0 available"
+          else
+              echo "  ❌ USB Serial Device: /dev/ttyGS0 not found"
+          fi
+          
+          echo ""
+          echo "TROUBLESHOOTING:"
+          echo "  • Check services: systemctl status usb-serial-gadget.service"
+          echo "  • View logs: journalctl -u usb-serial-gadget.service"
+          echo "  • Restart service: sudo systemctl restart usb-serial-gadget.service"
+          echo ""
+          EOF
+          
+          chmod +x $WORKDIR_BASE/root/usr/local/bin/usb-console-info
+          
+          # Step 8: Add alias for easy access
+          echo "Adding convenience alias..."
+          echo "# USB Serial Console alias" >> $WORKDIR_BASE/root/etc/bash.bashrc
+          echo "alias usb-info='usb-console-info'" >> $WORKDIR_BASE/root/etc/bash.bashrc
+          
+          echo "✅ USB Serial Gadget configuration completed!"
+          echo ""
+          echo "SUMMARY:"
+          echo "• USB serial console will be available via USB power cable"
+          echo "• Pi device: /dev/ttyGS0"
+          echo "• PC device: /dev/ttyACM0 (Linux/macOS) or COMx (Windows)"
+          echo "• Connection: 115200 baud, 8N1"
+          echo "• Run 'usb-console-info' or 'usb-info' on Pi for detailed instructions"
+
+      # Update System
+      - name: Update System
+        run: |
+          echo "Updating System..."
+          arch-chroot $WORKDIR_BASE/root /usr/bin/pacman -Syu --noconfirm
+
       # Final Message
       - name: Final Message
         run: |
@@ -395,10 +614,10 @@ jobs:
         run: |
           echo "Starting ISO upload to S3: $(basename "$LOOP_PATH/$IMAGE_NAME")"
           s3cmd \
-            --access_key="${{ env.S3_ACCESS_KEY }}" \
-            --secret_key="${{ env.S3_SECRET_KEY }}" \
-            --host="${{ env.CF_ACCOUNT_ID }}.r2.cloudflarestorage.com" \
-            --host-bucket="${{ env.CF_ACCOUNT_ID }}.r2.cloudflarestorage.com" \
+            --access_key="${{ secrets.S3_ACCESS_KEY }}" \
+            --secret_key="${{ secrets.S3_SECRET_KEY }}" \
+            --host="${{ secrets.CF_ACCOUNT_ID }}.r2.cloudflarestorage.com" \
+            --host-bucket="${{ secrets.CF_ACCOUNT_ID }}.r2.cloudflarestorage.com" \
             --progress \
             --stats \
             put "$LOOP_PATH/$IMAGE_NAME.zst" s3://${{ env.CF_BUCKET_NAME }}/

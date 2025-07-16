@@ -1,2 +1,3 @@
 .env
+.secrets
 upload_iso_to_r2.sh
