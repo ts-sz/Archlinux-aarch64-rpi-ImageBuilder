@@ -50,7 +50,7 @@ env:
     raspberrypi-bootloader firmware-raspberrypi zstd
 jobs:
   build-image:
-    name: Prepare for Image Build
+    name: Prepare, Build and Upload Image to S3
     runs-on: ubuntu-latest
     container:
       image: archlinux:latest
