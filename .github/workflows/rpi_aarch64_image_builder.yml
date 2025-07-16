@@ -210,8 +210,8 @@ jobs:
           rm -rf $WORKDIR_BASE/root/boot/*
           sync
   
-      # Install Packages
-      - name: Install Packages and remove linux-aarch64
+      # Initialize 
+      - name: Initialize pacman keyring and populate archlinuxarm
         run: |
           # Initialize pacman keyring
           echo "Initializing pacman keyring..."
@@ -228,11 +228,15 @@ jobs:
 
           echo "Updating pacman database..."
           arch-chroot $WORKDIR_BASE/root /usr/bin/pacman -Sy --noconfirm archlinux-keyring
-          
-          # Remove without confirmation linux-aarch64
+      
+      # Remove linux-aarch64 and uboot-raspberrypi
+      - name: Remove linux-aarch64 and uboot-raspberrypi
+        run: |
           arch-chroot $WORKDIR_BASE/root /usr/bin/pacman -R --noconfirm linux-aarch64 uboot-raspberrypi || true
-          
-          # if RPI_MODEL is 5, install linux-rpi-16k and rpi5-eeprom
+      
+      # Install linux-rpi-16k and rpi5-eeprom
+      - name: Install linux-rpi-16k and rpi5-eeprom
+        run: |
           if [ "$RPI_MODEL" = "5" ]; then
             echo "Installing linux-rpi-16k and rpi5-eeprom..."
             arch-chroot $WORKDIR_BASE/root /usr/bin/pacman -S --noconfirm --overwrite "/boot/*" linux-rpi-16k rpi5-eeprom
@@ -240,7 +244,9 @@ jobs:
             echo "Installing linux-rpi and rpi4-eeprom..."
             arch-chroot $WORKDIR_BASE/root /usr/bin/pacman -S --noconfirm --overwrite "/boot/*" linux-rpi rpi4-eeprom
           fi
-          # install packages
+      # Install packages
+      - name: Install packages
+        run: |
           echo "Installing packages..."
           arch-chroot $WORKDIR_BASE/root /usr/bin/pacman -S --noconfirm $OS_PACKAGES
       
@@ -293,7 +299,7 @@ jobs:
           echo "Configuring networking..."
           mkdir -p $WORKDIR_BASE/root/etc/systemd/network
           chmod 755 $WORKDIR_BASE/root/etc/systemd/network
-          cp -v ${{ github.workspace }}/src/etc/systemd/network/* $WORKDIR_BASE/root/etc/systemd/network/
+          cp -v $WORKDIR_BASE/src/etc/systemd/network/* $WORKDIR_BASE/root/etc/systemd/network/
       
       # Configure WiFi
       - name: Configure WiFi
