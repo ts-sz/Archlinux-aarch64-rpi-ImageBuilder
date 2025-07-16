@@ -358,11 +358,16 @@ jobs:
         run: |
           echo "Configuring USB Serial Gadget for console access via USB power cable..."
           
-          # Step 1: Configure boot config to enable USB OTG
+          # Step 1: Configure boot config for RPi 5 USB gadget
           echo "# === USB SERIAL GADGET CONFIGURATION ===" >> $WORKDIR_BASE/root/boot/config.txt
-          echo "# Enable USB OTG (On-The-Go) for serial console via USB power cable" >> $WORKDIR_BASE/root/boot/config.txt
-          echo "dtoverlay=dwc2" >> $WORKDIR_BASE/root/boot/config.txt
           echo "enable_uart=1" >> $WORKDIR_BASE/root/boot/config.txt
+          if [ "$RPI_MODEL" = "5" ]; then
+            # For RPi 5: Override cm5 section to use device mode
+            sed -i '/\[cm5\]/,/\[.*\]/{s/dtoverlay=dwc2,dr_mode=host/dtoverlay=dwc2,dr_mode=device/}' $WORKDIR_BASE/root/boot/config.txt
+          else
+            # For RPi 4: Standard configuration  
+            echo "dtoverlay=dwc2" >> $WORKDIR_BASE/root/boot/config.txt
+          fi
           echo "" >> $WORKDIR_BASE/root/boot/config.txt
           
           # Step 2: Add USB gadget modules to kernel command line
