@@ -299,7 +299,8 @@ jobs:
           echo "Configuring networking..."
           mkdir -p $WORKDIR_BASE/root/etc/systemd/network
           chmod 755 $WORKDIR_BASE/root/etc/systemd/network
-          cp -v $WORKDIR_BASE/src/etc/systemd/network/* $WORKDIR_BASE/root/etc/systemd/network/
+          cp -v $WORKDIR_BASE/src/etc/systemd/network/20-wired.network $WORKDIR_BASE/root/etc/systemd/network/20-wired.network
+          cp -v $WORKDIR_BASE/src/etc/systemd/network/20-wired.network $WORKDIR_BASE/root/etc/systemd/network/20-wired.network
       
       # Configure WiFi
       - name: Configure WiFi
