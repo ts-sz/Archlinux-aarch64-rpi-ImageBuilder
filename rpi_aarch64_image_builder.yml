@@ -1,0 +1,464 @@
+name: Build Archlinux aarch64 Raspberry Pi Image
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+env:
+  RPI_MODEL: 5
+  ARM_VERSION: aarch64
+  BUILD_DEPS: >
+    qemu-user-static-binfmt qemu-user-static
+    dosfstools wget libarchive arch-install-scripts
+    parted tree fping pwgen git s3cmd
+  LOOP_IMAGE_SIZE: 4G
+  ARCH_AARCH64_MIRROR: http://os.archlinuxarm.org/os
+  IMAGE_NAME_PREFIX: sz-arch
+  ARCH_AARCH64_IMG: ArchLinuxARM-rpi-aarch64-latest.tar.gz
+  ARCH_AARCH64_IMG_MD5: ArchLinuxARM-rpi-aarch64-latest.tar.gz.md5
+  WORKDIR_BASE: ${{ github.workspace }}
+  SSH_PUB_KEY_URL: https://github.com/ts-sz.keys
+  OS_LOCALES: |
+    en_US.UTF-8 UTF-8
+    en_US ISO-8859-1
+    fr_FR.UTF-8 UTF-8
+    fr_FR ISO-8859-1
+    fr_FR@euro ISO-8859-15
+  OS_DEFAULT_LOCALE: en_US.UTF-8
+  OS_TIMEZONE: Europe/Paris
+  OS_KEYMAP: us-acentos
+  OS_PACKAGES: >
+    base base-devel dosfstools git mkinitcpio-utils neovim nftables 
+    openssh python qrencode rsync sudo tailscale uboot-tools unzip 
+    zerotier-one zsh iwd wireless-regdb linux-firmware crda 
+    raspberrypi-bootloader firmware-raspberrypi
+  DISCORD_WEBHOOK_URL: https://discord.com/api/webhooks/1393752771878191224/qhnENlXY9PtdInJgXy1k0hHrF--0VjObNZ_8CKiEDQA3K4bKPd8AnMapV1-glizSty_J
+  CF_ACCOUNT_ID: 8e461b620abfa99df774cdc9f16c7be0
+  CF_BUCKET_NAME: rpi-aarch64
+  S3_ACCESS_KEY: fcc69d24a30283eaa773ceb9b321985b
+  S3_SECRET_KEY: 20628759b96368cd419af37739675aa919189bf7023647dea717df2fe722a250
+  ZT_NETWORK_ID: ebe7fbd445a4056a
+  UPLOAD_TO_S3: true
+jobs:
+  build-image:
+    name: Prepare for Image Build
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+      options: --privileged
+    steps:
+      # Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Install dependencies
+      - name: Install dependencies
+        run: |
+          pacman-key --init
+          pacman-key --populate archlinux
+          pacman -Syu --noconfirm $BUILD_DEPS
+      # Generate SHORT_SHA
+      - name: Generate SHORT_SHA
+        run: |
+          echo "Generating SHORT_SHA..."
+          echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      # Generate Dynamic Variables
+      - name: Generate Dynamic Variables
+        run: |
+          echo "Generating Dynamic Variables..."
+          BUILD_DATE=$(date +%Y%m%d)
+          echo "BUILD_DATE=$BUILD_DATE" >> $GITHUB_ENV
+          echo "RPI_HOSTNAME=sz-${{ env.SHORT_SHA }}-rpi${{ env.RPI_MODEL }}" >> $GITHUB_ENV
+          echo "WORKDIR_BASE=${{ github.workspace }}/run-${{ github.run_id }}" >> $GITHUB_ENV
+          echo "IMAGE_NAME=${{ env.IMAGE_NAME_PREFIX }}-${{ env.ARM_VERSION }}-rpi${{ env.RPI_MODEL }}_v${{ env.SHORT_SHA }}_${BUILD_DATE}.img" >> $GITHUB_ENV
+          echo "LOOP_PATH=${{ github.workspace }}/run-${{ github.run_id }}" >> $GITHUB_ENV
+          echo "ARCH_AARCH64_IMG_URL=${{ env.ARCH_AARCH64_MIRROR }}/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz" >> $GITHUB_ENV
+          echo "ARCH_AARCH64_IMG_URL_MD5=${{ env.ARCH_AARCH64_MIRROR }}/ArchLinuxARM-rpi-${{ env.ARM_VERSION }}-latest.tar.gz.md5" >> $GITHUB_ENV
+          echo "ROOT_PASSWORD=$(pwgen -s 17 1)" >> $GITHUB_ENV
+
+      # Print Dynamic Variables
+      - name: Print Dynamic Variables
+        run: |
+          echo "SHORT_SHA=${{ env.SHORT_SHA}}"
+          echo "RPI_HOSTNAME=${{ env.RPI_HOSTNAME}}"
+          echo "WORKDIR_BASE=${{ env.WORKDIR_BASE}}"
+          echo "IMAGE_NAME=${{ env.IMAGE_NAME}}"
+          echo "LOOP_PATH=${{ env.LOOP_PATH}}"
+          echo "ARCH_AARCH64_IMG_URL=${{ env.ARCH_AARCH64_IMG_URL}}"
+          echo "ARCH_AARCH64_IMG_URL_MD5=${{ env.ARCH_AARCH64_IMG_URL_MD5}}"
+          echo "ROOT_PASSWORD=${{ env.ROOT_PASSWORD}}"
+
+      # Create Work Folder and apply permissions
+      - name: Create Work Folder and apply permissions
+        run: |
+          echo "Creating directory $WORKDIR_BASE/rpi-$ARM_VERSION-rpi$RPI_MODEL"
+          mkdir -p $WORKDIR_BASE/rpi-$ARM_VERSION-rpi$RPI_MODEL
+          chmod -R 755 $WORKDIR_BASE
+          echo "Creating directory $(dirname $LOOP_PATH)"
+          mkdir -p $LOOP_PATH
+
+      
+      # Download RPI image
+      - name: Download RPI image and Checksum
+        run: |
+          echo "Downloading $ARCH_AARCH64_IMG and $ARCH_AARCH64_IMG_MD5 from $ARCH_AARCH64_MIRROR"
+          echo "Downloading $ARCH_AARCH64_IMG"
+          wget -q "$ARCH_AARCH64_MIRROR/$ARCH_AARCH64_IMG" -O $WORKDIR_BASE/rpi-$ARM_VERSION-rpi$RPI_MODEL/$ARCH_AARCH64_IMG
+          echo "Downloading $ARCH_AARCH64_IMG_MD5"
+          wget -q "$ARCH_AARCH64_MIRROR/$ARCH_AARCH64_IMG_MD5" -O $WORKDIR_BASE/rpi-$ARM_VERSION-rpi$RPI_MODEL/$ARCH_AARCH64_IMG_MD5
+
+      # Verify Checksum
+      - name: Verify Checksum
+        run: |
+          cd $WORKDIR_BASE/rpi-$ARM_VERSION-rpi$RPI_MODEL
+          echo "✅ Download complete. Verifying checksum..."
+          md5sum -c "$ARCH_AARCH64_IMG_MD5"
+
+      # Create Image File
+      - name: Create Image File
+        run: |
+          fallocate -l $LOOP_IMAGE_SIZE $LOOP_PATH/$IMAGE_NAME
+        
+      # Setup Loop Device
+      - name: Setup Loop Device
+        run: |
+          for i in $(seq 0 31); do
+            [ ! -e /dev/loop$i ] && mknod -m660 /dev/loop$i b 7 $i || true
+          done
+          sleep 2
+          ls -lh $LOOP_PATH/$IMAGE_NAME || (echo "Missing image file" && exit 1)
+          stat $LOOP_PATH/$IMAGE_NAME || (echo "Stat failed" && exit 1)
+          LOOP_DEVICE=$(losetup -fP $LOOP_PATH/$IMAGE_NAME --show)
+          echo "LOOP_DEVICE=${LOOP_DEVICE}" >> $GITHUB_ENV
+      
+      # Create Partitions
+      - name: Create Partitions
+        run: |
+          sfdisk --quiet --wipe always ${LOOP_DEVICE} <<EOF
+          ,256M,0c,*
+          ,,83,
+          EOF
+          sleep 2
+          sfdisk -d ${LOOP_DEVICE}
+      
+      # Format Partitions
+      - name: Format Partitions
+        run: |
+          sleep 2
+          lsblk --raw --output "NAME,MAJ:MIN" --noheadings ${LOOP_DEVICE} | tail -n +2 | while read dev node; do
+            MAJ=$(echo $node | cut -d: -f1)
+            MIN=$(echo $node | cut -d: -f2)
+            [ ! -e "/dev/$dev" ] && mknod "/dev/$dev" b $MAJ $MIN
+          done
+          sleep 2
+          mkfs.vfat -F32 ${LOOP_DEVICE}p1 -n RPI64-BOOT
+          mkfs.ext4 -q -E lazy_itable_init=0,lazy_journal_init=0 -F ${LOOP_DEVICE}p2 -L RPI64-ROOT
+      
+      # Mount Partitions
+      - name: Mount Partitions
+        run: |
+          mkdir -p ${WORKDIR_BASE}/root
+          mount ${LOOP_DEVICE}p2 ${WORKDIR_BASE}/root
+          mkdir -p ${WORKDIR_BASE}/root/boot
+          mount ${LOOP_DEVICE}p1 ${WORKDIR_BASE}/root/boot
+      
+      # Extract Archlinux aarch64 Image
+      - name: Extract Archlinux aarch64 Image
+        run: |
+          bsdtar -xpf $WORKDIR_BASE/rpi-$ARM_VERSION-rpi$RPI_MODEL/$ARCH_AARCH64_IMG -C ${WORKDIR_BASE}/root
+          sync
+      
+      # Enable QEMU for cross-architecture support
+      - name: Enable QEMU for cross-architecture support
+        run: |
+          # Make sure QEMU is available for cross-architecture emulation
+          systemctl start systemd-binfmt || echo "systemd-binfmt not available, continuing anyway"
+          
+          # Alternative way to set up binfmt if systemd is not available
+          if [ ! -f /proc/sys/fs/binfmt_misc/qemu-aarch64 ]; then
+            echo "Setting up binfmt manually"
+            mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc || true
+            echo ':qemu-aarch64:M::\x7fELF\x02\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\xb7\x00:\xff\xff\xff\xff\xff\xff\xff\x00\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff\xff:/usr/bin/qemu-aarch64-static:' > /proc/sys/fs/binfmt_misc/register || true
+          fi
+          
+          # Copy QEMU static binary into chroot for ARM64 emulation
+          echo "Copying QEMU static binary to chroot..."
+          cp /usr/bin/qemu-aarch64-static $WORKDIR_BASE/root/usr/bin/ || echo "qemu-aarch64-static not found, trying alternative locations"
+          
+          # Try alternative locations for QEMU static
+          if [ ! -f $WORKDIR_BASE/root/usr/bin/qemu-aarch64-static ]; then
+            find /usr -name "qemu-aarch64-static" 2>/dev/null | head -1 | xargs -I {} cp {} $WORKDIR_BASE/root/usr/bin/ || echo "Could not find qemu-aarch64-static"
+          fi
+          
+          # Verify QEMU static is in chroot
+          ls -la $WORKDIR_BASE/root/usr/bin/qemu-aarch64-static || echo "qemu-aarch64-static not found in chroot"
+      
+      # Clean U-Boot
+      - name: Clean U-Boot
+        run: |
+          echo "Cleaning U-Boot..."
+          rm -rf $WORKDIR_BASE/root/boot/*
+          sync
+  
+      # Install Packages
+      - name: Install Packages and remove linux-aarch64
+        run: |
+          # Initialize pacman keyring
+          echo "Initializing pacman keyring..."
+          arch-chroot $WORKDIR_BASE/root /usr/bin/pacman-key --init
+          arch-chroot $WORKDIR_BASE/root /usr/bin/pacman-key --populate archlinuxarm
+
+          # Update Mirrorlist
+          # echo "Updating mirrorlist..."
+          # arch-chroot $WORKDIR_BASE/root /usr/bin/pacman -Sy --noconfirm reflector
+          # arch-chroot $WORKDIR_BASE/root reflector --latest 10 --sort rate --save /etc/pacman.d/mirrorlist
+          # workaround for github actions
+          echo 'Server = http://de.mirror.archlinuxarm.org/$arch/$repo' > $WORKDIR_BASE/root/etc/pacman.d/mirrorlist
+          echo 'Server = http://mirror.archlinuxarm.org/$arch/$repo' >> $WORKDIR_BASE/root/etc/pacman.d/mirrorlist
+
+          echo "Updating pacman database..."
+          arch-chroot $WORKDIR_BASE/root /usr/bin/pacman -Sy --noconfirm archlinux-keyring
+          
+          # Remove without confirmation linux-aarch64
+          arch-chroot $WORKDIR_BASE/root /usr/bin/pacman -R --noconfirm linux-aarch64 uboot-raspberrypi || true
+          
+          # if RPI_MODEL is 5, install linux-rpi-16k and rpi5-eeprom
+          if [ "$RPI_MODEL" = "5" ]; then
+            echo "Installing linux-rpi-16k and rpi5-eeprom..."
+            arch-chroot $WORKDIR_BASE/root /usr/bin/pacman -S --noconfirm --overwrite "/boot/*" linux-rpi-16k rpi5-eeprom
+          elif [ "$RPI_MODEL" = "4" ]; then
+            echo "Installing linux-rpi and rpi4-eeprom..."
+            arch-chroot $WORKDIR_BASE/root /usr/bin/pacman -S --noconfirm --overwrite "/boot/*" linux-rpi rpi4-eeprom
+          fi
+          # update System
+          echo "Updating System..."
+          arch-chroot $WORKDIR_BASE/root /usr/bin/pacman -Syu --noconfirm
+
+          # install packages
+          echo "Installing packages..."
+          arch-chroot $WORKDIR_BASE/root /usr/bin/pacman -S --noconfirm $OS_PACKAGES
+      
+      # When Arch Linux ARM starts supporting the Pi 5,t he Pi Foundation’s kernel can be replaced with the mainline kernel
+      # https://kiljan.org/2023/11/24/arch-linux-arm-on-a-raspberry-pi-5-model-b/
+      - name: Replace Pi Foundation’s kernel with the mainline kernel
+        if: false
+        # if: ${{ env.RPI_MODEL == '5' }}
+        run: |
+          echo "Replacing Pi Foundation’s kernel with the mainline kernel..."
+          arch-chroot $WORKDIR_BASE/root /usr/bin/pacman -Syu linux-aarch64 uboot-raspberrypi
+
+      # Setup Locales (after packages are installed)
+      - name: Setup Locales
+        run: |
+          echo "Setting locales..."
+          echo "$OS_LOCALES" > $WORKDIR_BASE/root/etc/locale.gen
+          arch-chroot $WORKDIR_BASE/root locale-gen
+          echo "LANG=${OS_DEFAULT_LOCALE}" > $WORKDIR_BASE/root/etc/locale.conf
+          echo -e "KEYMAP=${OS_KEYMAP}\nFONT=eurlatgr" > $WORKDIR_BASE/root/etc/vconsole.conf
+      
+      # Setup Timezone
+      - name: Setup Timezone
+        run: |
+          echo "Setting timezone..."
+          ln -sf /usr/share/zoneinfo/${OS_TIMEZONE} $WORKDIR_BASE/root/etc/localtime
+      
+      # Configure Boot Options
+      - name: Configure Boot Options
+        run: |
+          echo "Configuring boot options..."
+
+      # Configure Hostname
+      - name: Configure Hostname
+        run: |
+          echo "Configuring hostname..."
+          echo "$RPI_HOSTNAME" > $WORKDIR_BASE/root/etc/hostname
+          # echo "Set hostname in chroot with hostnamectl..."
+          # arch-chroot $WORKDIR_BASE/root hostnamectl set-hostname "$RPI_HOSTNAME"
+      
+      # Configure Root Password
+      - name: Configure Root Password
+        run: |
+          echo "Configuring root password..."
+          arch-chroot $WORKDIR_BASE/root /bin/bash -c "echo root:$ROOT_PASSWORD | chpasswd"
+      
+      # Configure Networking by copying files from src/etc/systemd/network
+      - name: Configure Networking
+        run: |
+          echo "Configuring networking..."
+          mkdir -p $WORKDIR_BASE/root/etc/systemd/network
+          chmod 755 $WORKDIR_BASE/root/etc/systemd/network
+          cp -v ${{ github.workspace }}/src/etc/systemd/network/* $WORKDIR_BASE/root/etc/systemd/network/
+      
+      # Configure WiFi
+      - name: Configure WiFi
+        run: |
+          echo "Configuring WiFi if WIFI_SSID and WIFI_PASSWORD are not empty or not exist..."
+          if [ -n "$WIFI_SSID" ] && [ -n "$WIFI_PASSWORD" ]; then
+            mkdir -p $WORKDIR_BASE/root/var/lib/iwd
+            cat <<EOF > $WORKDIR_BASE/root/var/lib/iwd/${WIFI_SSID}.psk
+            [Security]
+            PreSharedKey=${WIFI_PASSWORD}
+          
+          [Settings]
+          AutoConnect=true
+          EOF
+          arch-chroot $WORKDIR_BASE/root systemctl enable iwd
+          fi
+      
+      # Configure SSH Server
+      - name: Configure SSH Authorized Keys
+        run: |
+          echo "Configuring SSH Authorized Keys..."
+          mkdir -p $WORKDIR_BASE/root/root/.ssh
+          curl -s $SSH_PUB_KEY_URL > $WORKDIR_BASE/root/root/.ssh/authorized_keys
+          chmod 700 $WORKDIR_BASE/root/root/.ssh
+          chmod 600 $WORKDIR_BASE/root/root/.ssh/authorized_keys
+      
+      # Configure SSH Config Files
+      - name: Configure SSH Config Files
+        run: |
+          echo "Configuring SSH Config Files..."
+          mkdir -p $WORKDIR_BASE/root/etc/ssh/sshd_config.d/
+          echo "UseDNS no" > $WORKDIR_BASE/root/etc/ssh/sshd_config.d/10-dns.conf
+          echo "Port 34522" > $WORKDIR_BASE/root/etc/ssh/sshd_config.d/20-port.conf
+          echo "PermitRootLogin prohibit-password" > $WORKDIR_BASE/root/etc/ssh/sshd_config.d/30-root-login.conf
+          echo "AddressFamily any" > $WORKDIR_BASE/root/etc/ssh/sshd_config.d/40-address-family.conf
+          arch-chroot $WORKDIR_BASE/root systemctl enable sshd
+      
+      # Configure fstab
+      - name: Configure fstab
+        run: |
+          echo "Configuring fstab..."
+          echo "LABEL=RPI64-BOOT  /boot   vfat    defaults        0       0" > $WORKDIR_BASE/root/etc/fstab
+          # echo "LABEL=RPI64-ROOT  /       ext4    defaults        0       1" >> $WORKDIR_BASE/root/etc/fstab
+      
+      # Configure ZeroTier
+      - name: Configure ZeroTier
+        run: |
+          echo "Configuring ZeroTier and join network $ZT_NETWORK_ID..."
+          arch-chroot $WORKDIR_BASE/root systemctl enable zerotier-one
+          arch-chroot $WORKDIR_BASE/root mkdir -p /var/lib/zerotier-one/networks.d
+          touch $WORKDIR_BASE/root/var/lib/zerotier-one/networks.d/$ZT_NETWORK_ID.conf        
+      
+      # Final Message
+      - name: Final Message
+        run: |
+          echo "Installation is complete. Insert the SD card into your Raspberry Pi and power it on."
+
+      # Save Root Password to File
+      - name: Save Root Password to File
+        run: |
+          echo "$ROOT_PASSWORD" > root_password.txt
+          echo "Saved root password to root_password.txt"
+
+      # Upload Root Password as Artifact
+      - name: Upload Root Password as Artifact
+        if: always() && false
+        uses: actions/upload-artifact@v4
+        with:
+          name: root-password
+          path: root_password.txt
+
+      # Umount loop device
+      - name: Umount loop device
+        run: |
+          umount -R -fl ${WORKDIR_BASE}/root/boot || true
+          umount -R -fl ${WORKDIR_BASE}/root || true
+          echo "Unmounted $WORKDIR_BASE"
+          sync
+      
+      # Release Loop Device
+      - name: Release Loop Device
+        if: always()
+        run: |
+          if [ -n "$LOOP_DEVICE" ]; then
+            losetup -d $LOOP_DEVICE || true
+            echo "Loop device $LOOP_DEVICE released"
+          fi
+      
+      # Compress image with zstd
+      - name: Compress Image with zstd
+        run: |
+          echo "Compressing $IMAGE_NAME with zstd..."
+          zstd -T0 -19 -f "$LOOP_PATH/$IMAGE_NAME" -o "$LOOP_PATH/$IMAGE_NAME.zst"
+          echo "Compressed file: $LOOP_PATH/$IMAGE_NAME.zst"
+      
+      # Upload iso to S3 
+      - name: Upload ISO with S3 API (s3cmd)
+        if: env.UPLOAD_TO_S3 == 'true'
+        run: |
+          echo "Starting ISO upload to S3: $(basename "$LOOP_PATH/$IMAGE_NAME")"
+          s3cmd \
+            --access_key="${{ env.S3_ACCESS_KEY }}" \
+            --secret_key="${{ env.S3_SECRET_KEY }}" \
+            --host="${{ env.CF_ACCOUNT_ID }}.r2.cloudflarestorage.com" \
+            --host-bucket="${{ env.CF_ACCOUNT_ID }}.r2.cloudflarestorage.com" \
+            --progress \
+            --stats \
+            put "$LOOP_PATH/$IMAGE_NAME.zst" s3://${{ env.CF_BUCKET_NAME }}/
+
+      # Delete Work Folder
+      - name: Delete Work Folder
+        if: always()
+        run: |
+          rm -rf $WORKDIR_BASE || true
+          echo "Deleted $WORKDIR_BASE"
+
+      # Upload Root Password as Artifact
+      - name: Upload Root Password as Artifact
+        if: always() && false
+        uses: actions/upload-artifact@v4
+        with:
+          name: root-password
+          path: root_password.txt
+          retention-days: 1
+
+      # Create GitHub Release
+      - name: Create Release
+        if: always() && false
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.SHORT_SHA }}
+          release_name: Release ${{ env.SHORT_SHA }}
+          body: |
+            🚀 Custom Archlinux ${{ env.ARM_VERSION }} image for Raspberry Pi Model ${{ env.RPI_MODEL }}
+
+            **🧾 Configuration:**
+            - Hostname: `sz-${{ env.SHORT_SHA }}-rpi${{ env.RPI_MODEL }}`
+            - Locale: `${{ env.OS_DEFAULT_LOCALE }}`
+            - Timezone: `${{ env.OS_TIMEZONE }}`
+            - Keymap: `${{ env.OS_KEYMAP }}`
+
+            **📦 Packages Included:**
+            ${{ env.OS_PACKAGES }}
+
+            🔑 Root password is available as a GitHub artifact.
+
+      # Notify Discord on Success
+      - name: Notify Success
+        if: always() && false
+        run: |
+          SUCCESS_MESSAGE="🎉 Archlinux aarch64 image build succeeded for RPi${{ env.RPI_MODEL }} 🚀\n\
+          📌 **Model**: RPi${{ env.RPI_MODEL }} | **Arch**: ${{ env.ARM_VERSION }}\n\
+          📦 **Packages**: ${{ env.OS_PACKAGES }}\n\
+          📁 **Filename**: ${{ env.IMAGE_NAME }}\n\
+          🔑 Root password available in artifact\n\
+          🔗 [View Commit](https://github.com/${{ github.repository }}/commit/${{ github.sha }})\n\
+          📥 [Download Image]($ISO_URL)"
+          curl -X POST -H "Content-Type: application/json" -d "{\"content\": \"$SUCCESS_MESSAGE\"}" $DISCORD_WEBHOOK_URL
+
+      # Notify Discord on Failure
+      - name: Notify Failure
+        if: always() && false
+        run: |
+          FAILURE_MESSAGE="❌ Build failed for **${{ github.repository }}**\n🔗 [View logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+          curl -X POST -H "Content-Type: application/json" -d "{\"content\": \"$FAILURE_MESSAGE\"}" $DISCORD_WEBHOOK_URL

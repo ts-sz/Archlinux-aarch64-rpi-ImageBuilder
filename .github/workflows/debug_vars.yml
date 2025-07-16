@@ -1,0 +1,29 @@
+name: Test Secrets and Variables
+
+on:
+    workflow_dispatch:
+    push:
+      branches:
+        - main
+
+jobs:
+  debug-vars:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print GitHub Variables
+        run: |
+          echo "✅ RPI_MODEL: $RPI_MODEL"
+          echo "✅ CF_BUCKET_NAME: $CF_BUCKET_NAME"
+          echo "✅ CF_ACCOUNT_ID: $CF_ACCOUNT_ID"
+          echo "✅ UPLOAD_TO_S3: $UPLOAD_TO_S3"
+        env:
+          RPI_MODEL: ${{ env.RPI_MODEL }}
+          CF_BUCKET_NAME: ${{ env.CF_BUCKET_NAME }}
+          CF_ACCOUNT_ID: ${{ env.CF_ACCOUNT_ID }}
+          UPLOAD_TO_S3: ${{ env.UPLOAD_TO_S3 }}
+
+      - name: Confirm secrets are set (won't print values)
+        run: |
+          echo "🔒 S3_ACCESS_KEY set? -> ${{ secrets.S3_ACCESS_KEY != '' }}"
+          echo "🔒 S3_SECRET_KEY set? -> ${{ secrets.S3_SECRET_KEY != '' }}"
+          echo "🔒 DISCORD_WEBHOOK_URL set? -> ${{ secrets.DISCORD_WEBHOOK_URL != '' }}"

@@ -4,9 +4,9 @@ title       :build-archlinux-rpi-aarch64-img.sh
 description :
 author      :Valeriu Stinca
 email       :ts@strategic.zone
-date        :20250422
-version     :2
-notes       : Ajout support Ethernet DHCP + IP statique, Wi-Fi iwd auto
+date        :20250712
+version     :3
+notes       : 
 =========================
 COMMENTBLOCK
 
@@ -25,20 +25,16 @@ ICAgIHxfX18vICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAK" | base64 -d
 
 configure_locale() {
   echo "Setting locale and keymap..."
-  sed -i -e '/^#en_US.UTF-8 UTF-8/s/^#//' \
-    -e '/^#en_US ISO-8859-1/s/^#//' \
-    -e '/^#fr_FR.UTF-8 UTF-8/s/^#//' \
-    -e '/^#fr_FR ISO-8859-1/s/^#//' \
-    -e '/^#fr_FR@euro ISO-8859-15/s/^#//' $WORKDIR_BASE/root/etc/locale.gen
-
+  # Convert space-delimited locales to newline-separated format
+  echo "$OS_LOCALES" | tr ' ' '\n' > $WORKDIR_BASE/root/etc/locale.gen
   arch-chroot $WORKDIR_BASE/root locale-gen
-  echo "LANG=${DEFAULT_LOCALE}" > $WORKDIR_BASE/root/etc/locale.conf
-  echo -e "KEYMAP=${KEYMAP}\nFONT=eurlatgr" > $WORKDIR_BASE/root/etc/vconsole.conf
+  echo "LANG=${OS_DEFAULT_LOCALE}" > $WORKDIR_BASE/root/etc/locale.conf
+  echo -e "KEYMAP=${OS_KEYMAP}\nFONT=eurlatgr" > $WORKDIR_BASE/root/etc/vconsole.conf
 }
 
 configure_timezone() {
   echo "Setting timezone..."
-  ln -sf /usr/share/zoneinfo/${TIMEZONE} $WORKDIR_BASE/root/etc/localtime
+  ln -sf /usr/share/zoneinfo/${OS_TIMEZONE} $WORKDIR_BASE/root/etc/localtime
 }
 
 install_packages() {

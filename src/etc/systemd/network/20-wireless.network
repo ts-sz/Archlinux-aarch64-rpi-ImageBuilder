@@ -1,0 +1,12 @@
+[Match]
+Type=wlan
+
+[Network]
+DHCP=yes
+DNSSEC=no
+
+[DHCPv4]
+RouteMetric=600
+
+[IPv6AcceptRA]
+RouteMetric=600
